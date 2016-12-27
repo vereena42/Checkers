@@ -183,6 +183,301 @@ bool checkers::create_queen(int x, int y){
     return true;
 }
 
+bool checkers::is_end_of_game(){
+    return is_there_winner() || 
+            is_no_pawns() ||
+            is_game_blocked();
+}
+
+bool checkers::is_no_pawns(){
+    for(int i=0;i<n*n;i++){
+        if (tab[i] == WHITE || tab[i] == BLACK)
+            return false;
+    }
+    return true;
+}
+
+bool checkers::is_game_blocked(){
+    int temp_col, temp_row;
+    for(int row=0;row<n;row++){
+        for(int col=0;col<n;col++){
+            if(tab[row*n+col] == WHITE){
+                if(col > 0 && row > 0 && !is_a_pawn(row-1,col-1))
+                    return false;
+                if(col < n-1 && row > 0 && !is_a_pawn(row-1,col+1))
+                    return false;
+                if(col > 1 && row > 1 && pawn_owner(row-1,col-1) == BLACK && !is_a_pawn(row-2,col-2))
+                    return false;
+                if(col < n-2 && row > 1 && pawn_owner(row-1,col+1) == BLACK && !is_a_pawn(row-2,col+2))
+                    return false;
+            }
+            else if(tab[row*n+col] == BLACK){
+                if(col > 0 && row < n-1  && !is_a_pawn(row+1,col-1))
+                    return false;
+                if(col < n-1 && row < n-1 && !is_a_pawn(row+1,col+1))
+                    return false;
+                if(col > 1 && row < n-2 && pawn_owner(row+1,col-1) == WHITE && !is_a_pawn(row+2,col-2))
+                    return false;
+                if(col < n-2 && row < n-2 && pawn_owner(row+1,col+1) == WHITE && !is_a_pawn(row+2,col+2))
+                    return false;
+            }
+            else if(tab[row*n+col] == queenW || tab[row*n+col] == queenB){
+                temp_col = col-1;
+                temp_row = row-1;
+                while(temp_col >= 0 && temp_row >= 0){
+                    if(!is_a_pawn(temp_row,temp_col) && queen_way(row,col,temp_row,temp_col))
+                        return false;
+                    temp_col--;
+                    temp_row--;
+                }
+                temp_col = col+1;
+                temp_row = row-1;
+                while(temp_col <= n-1 && temp_row >= 0){
+                    if(!is_a_pawn(temp_row,temp_col) && queen_way(row,col,temp_row,temp_col))    
+                        return false;
+                    temp_col++;
+                    temp_row--;
+                }
+                temp_col = col-1;
+                temp_row = row+1;
+                while(temp_col >= 0 && temp_row <= n-1){
+                    if(!is_a_pawn(temp_row,temp_col) && queen_way(row,col,temp_row,temp_col))    
+                        return false;
+                    temp_col--;
+                    temp_row++;
+                }
+                temp_col = col+1;
+                temp_row = row+1;
+                while(temp_col <= n-1 && temp_row <= n-1){
+                    if(!is_a_pawn(temp_row,temp_col) && queen_way(row,col,temp_row,temp_col))
+                        return false;
+                    temp_col++;
+                    temp_row++;
+                }
+            }
+        }
+    }
+    return true;
+}
+
+bool checkers::is_there_winner(){
+    int black_count = 0,white_count = 0;
+    for(int i=0;i<n*n;i++){
+        if(tab[i] == WHITE || tab[i] == queenW)
+            white_count++;
+        else if(tab[i] == BLACK || tab[i] == queenB)
+            black_count++;
+    }
+    return black_count == 0 || white_count == 0;
+}
+
+int checkers::check_who_won(){
+    if (is_no_pawns())
+        return who_got_more_queens();
+    if (is_game_blocked())
+        return who_got_more_points();
+    return who_got_pawns();
+}
+
+int checkers::who_got_more_queens(){
+    int black_count = 0,white_count = 0;
+    for(int i=0;i<n*n;i++){
+        if(tab[i] == queenW)
+            white_count++;
+        else if(tab[i] == queenB)
+            black_count++;
+    }
+    if(black_count > white_count)
+        return BLACK;
+    if(white_count > black_count)
+        return WHITE;
+    return -1;
+}
+
+int checkers::who_got_more_points(){
+    int black_count = 0,white_count = 0;
+    for(int i=0;i<n*n;i++){
+        if(tab[i] == WHITE)
+            white_count+=3;
+        else if(tab[i] == queenW)
+            white_count+=5;
+        else if(tab[i] == BLACK)
+            black_count+=3;
+        else if(tab[i] == queenB)
+            black_count+=5;
+    } 
+    if(black_count > white_count)
+        return BLACK;
+    if(white_count > black_count)
+        return WHITE;
+    return -1;
+}
+
+int checkers::who_got_pawns(){
+    for(int i=0;i<n*n;i++){
+        if(tab[i] == queenW || tab[i] == WHITE)
+            return WHITE;
+        else if(tab[i] == queenB || tab[i] == BLACK)
+            return BLACK;
+    }
+}
+
+int checkers::calculate_board_value(){
+    int value;
+    value=calculate_pawns_value();
+    value=100*value+calculate_dist_to_be_queen();
+    value=100*value+calculate_future_queen_kills();
+    value=10*value+(std::rand()%10);
+    return value;
+}
+
+int checkers::calculate_pawns_value(){
+    int count = 0;
+    for(int i=0;i<n*n;i++){
+        if(tab[i] == WHITE)
+            count+=3;
+        else if(tab[i] == queenW)
+            count+=5;
+        else if(tab[i] == BLACK)
+            count-=3;
+        else if(tab[i] == queenB)
+            count-=5;
+    }
+    return (int)(((49.5*count)/57.0) + 49.5);
+}
+
+int checkers::calculate_dist_to_be_queen(){
+    int black_count=0,white_count=0,black_dist=0,white_dist=0;
+    for(int row=0;row<n;row++){
+        for(int col=0;col<n;col++){
+            if(tab[row*n+col] == WHITE){
+                white_count++;
+                white_dist+=(n-1-row);
+            }
+            else if(tab[row*n+col] == BLACK){
+                black_count++;
+                black_dist+=row;
+            }
+        }
+    }
+    double black_val, white_val;
+    if(white_count == 0)
+        white_val = 0;
+    else
+        white_val = (double)white_dist/(double)white_count;
+    if(black_count == 0)
+        black_val = 0;
+    else
+        black_val = (double)black_dist/(double)black_count;
+    double value = black_val - white_val;
+    return (int)(0.495*value + 49.5);
+}
+
+int checkers::calculate_future_queen_kills(){
+    int * kill_tab = new int [n*n];
+    int temp_row,temp_col,white_count=0,black_count=0,white_dead=0,black_dead=0;
+    for(int row=0;row<n;row++){
+        for(int col=0;col<n;col++){
+            kill_tab[row*n+col] = EMPTY;
+            if(tab[row*n+col] == queenB || tab[row*n+col] == queenW){
+                temp_row = row-1;
+                temp_col = col-1;
+                while(temp_row >= 1 && temp_col >= 1){
+                    if(is_a_pawn(temp_row,temp_col)){
+                        if(pawn_owner(row,col) == pawn_owner(temp_row,temp_col))
+                            break;
+                        else if(is_a_pawn(temp_row-1,temp_col-1))
+                            break;
+                        else{
+                            kill_tab[temp_row*n+temp_col] = pawn_owner(temp_row,temp_col);
+                            temp_row--;
+                            temp_col--;
+                        }
+                    }
+                    temp_row--;
+                    temp_col--;
+                }
+                temp_row = row-1;
+                temp_col = col+1;
+                while(temp_row >= 1 && temp_col <= n-2){
+                    if(is_a_pawn(temp_row,temp_col)){
+                        if(pawn_owner(row,col) == pawn_owner(temp_row,temp_col))
+                            break;
+                        else if(is_a_pawn(temp_row-1,temp_col+1))
+                            break;
+                        else{
+                            kill_tab[temp_row*n+temp_col] = pawn_owner(temp_row,temp_col);
+                            temp_row--;
+                            temp_col++;
+                        }
+                    }
+                    temp_row--;
+                    temp_col++;
+                }
+                temp_row = row+1;
+                temp_col = col-1;
+                while(temp_row <= n-2 && temp_col >= 1){
+                    if(is_a_pawn(temp_row,temp_col)){
+                        if(pawn_owner(row,col) == pawn_owner(temp_row,temp_col))
+                            break;
+                        else if(is_a_pawn(temp_row+1,temp_col-1))
+                            break;
+                        else{
+                            kill_tab[temp_row*n+temp_col] = pawn_owner(temp_row,temp_col);
+                            temp_row++;
+                            temp_col--;
+                        }
+                    }
+                    temp_row++;
+                    temp_col--;
+                }
+                temp_row = row+1;
+                temp_col = col+1;
+                while(temp_row <= n-2 && temp_col <= n-2){
+                    if(is_a_pawn(temp_row,temp_col)){
+                        if(pawn_owner(row,col) == pawn_owner(temp_row,temp_col))
+                            break;
+                        else if(is_a_pawn(temp_row+1,temp_col+1))
+                            break;
+                        else{
+                            kill_tab[temp_row*n+temp_col] = pawn_owner(temp_row,temp_col);
+                            temp_row++;
+                            temp_col++;
+                        }
+                    }
+                    temp_row++;
+                    temp_col++;
+                }
+            }
+        }
+    }
+    for(int row=0;row<n;row++){
+        for(int col=0;col<n;col++){
+            if(kill_tab[row*n+col] == WHITE)
+                white_dead++;
+            else if(kill_tab[row*n+col] == BLACK)
+                black_dead++;
+            if(is_a_pawn(row,col)){
+                if(pawn_owner(row,col) == WHITE)
+                    white_count++;
+                else
+                    black_count++;
+            }
+        }
+    }
+    double black_percent,white_percent;
+    if(black_count == 0)
+        black_percent = 1.0;
+    else
+        black_percent = (double)black_dead/(double)black_count;
+    if(white_count == 0)
+        white_percent = 1.0;
+    else
+        white_percent = (double)white_dead/(double)white_count;
+    int value = white_percent - black_percent;
+    return 49.5*value+49.5;
+}
+
 std::string checkers::player_symbol(int i){
     if (i == WHITE)
         return outW;
@@ -215,7 +510,10 @@ void checkers::play(checkers &ch){
         }
         if (move == 1)
             std::swap(i, i2);
+        if (ch.is_end_of_game())
+            break;
     }
+    std::cout << "Player " << ch.check_who_won() << "won!\n";
 }
 
 std::string symobol(int i){

@@ -70,6 +70,18 @@ public:
     bool queen_way(int x, int y, int x1, int y1);
     bool create_queen(int x, int y);
     bool is_queen(int x, int y);
+    bool is_end_of_game();
+    bool is_no_pawns();
+    bool is_game_blocked();
+    bool is_there_winner();
+    int check_who_won();
+    int who_got_more_queens();
+    int who_got_more_points();
+    int who_got_pawns();
+    int calculate_board_value();
+    int calculate_pawns_value();
+    int calculate_dist_to_be_queen();
+    int calculate_future_queen_kills();
     static std::string player_symbol(int k);
     static void play(checkers &ch);
     
