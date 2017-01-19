@@ -1,10 +1,13 @@
 #include<cstdio>
+#include<queue>
+#include<vector>
 
 struct checkers_point{
     int board[64];
     int how_much_children;
     checkers_point * children = NULL;
     checkers_point * next = NULL;
+    checkers_point * prev = NULL;
     checkers_point * parent = NULL;
     bool min_max;
     int value;
@@ -31,9 +34,91 @@ __device__
             ch2->next = new checkers_point;
             ch2->next->value = ch2->value+1;
             ch2->next->parent = ch2->parent;
+            ch2->next->prev = ch2;
             ch2 = ch2->next;
         }
     }
+
+__device__
+    void delete_subtree(checkers_point * ch) {
+        //detaching subtree from parent
+        if(ch->parent != NULL) {
+            if(ch->parent->children == ch) {
+                ch->parent->children = ch->next;
+                if(ch->next != NULL) {
+                    ch->next->prev = NULL;
+                }
+            }   
+            else {
+                if(ch->prev != NULL) {
+                    ch->prev->next = ch->next;
+                }
+                if(ch->next != NULL) {
+                    ch->next->prev = ch->prev;
+                }
+            }
+        } 
+        
+        //deleting all nodes in BFS order
+        std::queue <checkers_point *> Q;
+        checkers_point * temp, child;
+        Q.push(ch);
+
+        while(!Q.empty()) {
+            temp = Q.front();
+            Q.pop();
+
+            child = temp->children;
+            while(child != NULL) {
+                Q.push(child);
+                child = child->next;
+            }
+            delete temp;
+         }
+    }
+
+__device__
+    void change_tree_to_subtree(checkers_point * old_tree, checkers_point * new_tree) {
+        int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
+        std::vector <checkers_point *> vec;
+        if(thid == 0){
+            new_tree->parent = NULL;
+            checkers_point * child = old_tree->children;
+            checkers_point * grandchild;
+            checkers_point * ggchild;
+            checkers_point * temp;
+            while(child != NULL) {
+                if(child != new_tree) {
+                    grandchild = child->children;
+                    while(grandchild!=NULL) {
+                        ggchild = grand_child->children;
+                        while(ggchild != NULL) {
+                            ggchild->parent = NULL;
+                            vec.push_back(ggchild);
+                            ggchild = ggchild->next;
+                        }
+                        temp = grandchild;
+                        granchild = granchild->next;
+                        delete temp;
+                    }    
+                }
+                temp = child;
+                child = child->next;
+                delete temp;
+            }
+            delete old_tree;
+        }
+        __syncthreads();
+        if(thid < vec.size()) {
+            checkers_point * my_child = vec[thid];
+            delete_subtree(my_child);
+        }
+    }
+
+__global__
+	void alpha_beta(checkers_point * ch){
+		change_tree_to_subtree(ch, ch->children);
+	}
     
 __global__
     void create_tree(int n, checkers_point * ch, int how_deep){

@@ -36,7 +36,7 @@ int main(){
         exit(1);
     }
 
-    CUfunction create_tree, print_tree, nl;
+    CUfunction alpha_beta, create_tree, print_tree, nl;
     res = cuModuleGetFunction(&create_tree, cuModule, "create_tree");
     if (res != CUDA_SUCCESS){
         printf("cannot acquire kernel handle\n");
@@ -49,6 +49,12 @@ int main(){
     }
     
     res = cuModuleGetFunction(&nl, cuModule, "new_line");
+    if (res != CUDA_SUCCESS){
+        printf("cannot acquire kernel handle\n");
+        exit(1);
+    }
+
+    res = cuModuleGetFunction(&alpha_beta, cuModule, "alpha_beta");
     if (res != CUDA_SUCCESS){
         printf("cannot acquire kernel handle\n");
         exit(1);
@@ -86,6 +92,7 @@ int main(){
     }
     int i;
     void* args[] = {&n, &Adev, &i};
+	void* args2[] = {&Adev};
     for (i = 1; i < how_deep+1; i++){
         res = cuLaunchKernel(create_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
         res = cuLaunchKernel(nl, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
@@ -95,6 +102,18 @@ int main(){
         exit(1);
     }
     res = cuLaunchKernel(print_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
+    if (res != CUDA_SUCCESS){
+        printf("cannot run kernel\n");
+        exit(1);
+    }
+
+	res = cuLaunchKernel(alpha_beta, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
+    if (res != CUDA_SUCCESS){
+        printf("cannot run kernel\n");
+        exit(1);
+    }
+
+	res = cuLaunchKernel(print_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
     if (res != CUDA_SUCCESS){
         printf("cannot run kernel\n");
         exit(1);
