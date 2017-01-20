@@ -17,11 +17,13 @@ extern "C" {
 __device__
     void ramification(checkers_point * ch2, int thid, int how_deep){
         int pseudo_rand = thid % 7 + 2;
+	/*
         if (!(thid == 0 && how_deep == 1))
             printf("%d | %d | %d | %d\n", thid, ch2->value, pseudo_rand, ch2->parent->value);
         else {
             printf("%d | %d\n", thid, pseudo_rand);
         }
+	*/
         ch2->how_much_children = pseudo_rand;
         ch2->children = new checkers_point;
         ch2->children->value = ch2->value*100+1;
@@ -84,10 +86,12 @@ __global__
     }
 
 __global__
-    void new_line(int n, checkers_point * ch, int i){
+    void set_root(checkers_point * ch, int * tab){
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
         if (thid == 0){
-            printf("____\n");
+	    ch->value = 1;
+	    for (int i = 0; i < 64; ++i)
+		ch->board[i] = tab[i]; 
         }
     }
 

@@ -36,7 +36,7 @@ int main(){
         exit(1);
     }
 
-    CUfunction create_tree, print_tree, nl;
+    CUfunction create_tree, print_tree, set_root;
     res = cuModuleGetFunction(&create_tree, cuModule, "create_tree");
     if (res != CUDA_SUCCESS){
         printf("cannot acquire kernel handle\n");
@@ -48,7 +48,7 @@ int main(){
         exit(1);
     }
     
-    res = cuModuleGetFunction(&nl, cuModule, "new_line");
+    res = cuModuleGetFunction(&set_root, cuModule, "set_root");
     if (res != CUDA_SUCCESS){
         printf("cannot acquire kernel handle\n");
         exit(1);
@@ -58,11 +58,13 @@ int main(){
     int how_deep = 4;
     int max_children = 12 * 2;
     int n = max_children;
+    int * tab_with_board;
     for (int i = 0; i < how_deep; i++){
         n *= max_children;
     }
     printf("N: %d\n", n);
-    size_t size = sizeof(checkers_point);
+    size_t size = sizeof(checkers_point)*n;
+    size_t size_tab = sizeof(int)*64;
     checkers_point * a = (checkers_point*) malloc(size);
     res = cuMemHostRegister(a, size, 0);
     if (res != CUDA_SUCCESS){
@@ -73,22 +75,32 @@ int main(){
     int threads_per_block = 1024;
     a->children = a->parent = a->next = NULL;
     a->value = 1;
-    CUdeviceptr Adev;
+    CUdeviceptr Adev, Atab;
     res = cuMemAlloc(&Adev, size);
     if (res != CUDA_SUCCESS){
         printf("cuMemAlloc\n");
         exit(1);
     }
-    res = cuMemcpyHtoD(Adev, a, size);
+    res = cuMemAlloc(&Atab, size_tab);
+    if (res != CUDA_SUCCESS){
+        printf("cuMemAlloc\n");
+        exit(1);
+    }
+    res = cuMemcpyHtoD(Atab, tab_with_board, size_tab);
     if (res != CUDA_SUCCESS){
         printf("cuMemcpy\n");
         exit(1);
     }
     int i;
     void* args[] = {&n, &Adev, &i};
+    void* args_root[] = {&Adev, &Atab};
+    res = cuLaunchKernel(set_root, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args_root, 0);
+    if (res != CUDA_SUCCESS){
+        printf("cannot run kernel\n");
+        exit(1);
+    }
     for (i = 1; i < how_deep+1; i++){
         res = cuLaunchKernel(create_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
-        res = cuLaunchKernel(nl, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
     }
     if (res != CUDA_SUCCESS){
         printf("cannot run kernel\n");
@@ -99,8 +111,9 @@ int main(){
         printf("cannot run kernel\n");
         exit(1);
     }
-    cuMemcpyDtoH(a, Adev, size);
+//    cuMemcpyDtoH(a, Adev, size);
     cuMemFree(Adev);
+    cuMemFree(Atab);
     printf("Result: %d\n", a->value);
     cuCtxDestroy(cuContext);
     return 0;
