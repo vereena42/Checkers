@@ -320,6 +320,7 @@ int checkers::who_got_pawns(){
         else if(tab[i] == queenB || tab[i] == BLACK)
             return BLACK;
     }
+    return 0;
 }
 
 int checkers::calculate_board_value(){
@@ -486,34 +487,138 @@ std::string checkers::player_symbol(int i){
     return outE;
 }
 
+void checkers::move_switch(checkers &ch, int player){
+    bool brk;
+    while (true){
+        std::cout << "\n" << ch << "\n";
+        char input = getchar();
+        if (input == 13)
+            break;
+        switch (input) {
+            case 'a':
+                for (int i = ch.a_y-1; i >= 0; i--){
+                    if (ch.pawn_owner(ch.a_x, i) == player){
+                        ch.a_y = i;
+                        break;
+                    }
+                }
+                break;
+            case 's':
+                brk = false;
+                for (int i = ch.a_x+1; i < ch.n; i++){
+                    for (int j = 0; j < ch.n; j++){
+                        if (ch.pawn_owner(i, j) == player){
+                            ch.a_x = i;
+                            ch.a_y = j;
+                            brk = true;
+                            break;
+                        }
+                    }
+                    if (brk)
+                        break;
+                }
+                break;
+            case 'd':
+                for (int i = ch.a_y+1; i < ch.n; i++){
+                    if (ch.pawn_owner(ch.a_x, i) == player){
+                        ch.a_y = i;
+                        break;
+                    }
+                }
+                break;
+            case 'w':
+                brk = false;
+                for (int i = ch.a_x-1; i >= 0; i--){
+                    for (int j = 0; j < ch.n; j++){
+                        if (ch.pawn_owner(i, j) == player){
+                            ch.a_x = i;
+                            ch.a_y = j;
+                            brk = true;
+                            break;
+                        }
+                    }
+                    if (brk)
+                        break;
+                }
+                break;
+            case 'q':
+                ch.a_x = ch.a_y = -1;
+                return;
+            default:
+                break;
+        }
+    }
+}
+
+void checkers::move(checkers &ch, int * xy, int player, bool next_move){
+    int i, j = 0;
+    do {
+        if (next_move == false){
+            std::cout << "Tura gracza: " << checkers::player_symbol(player) << "\n";
+            for (int i = 0; i < ch.n*ch.n; ++i){
+                if (ch.pawn_owner(i/ch.n, i%ch.n) == player){
+                    ch.a_x = i/ch.n;
+                    ch.a_y = i%ch.n;
+                    break;
+                }
+            }
+            move_switch(ch, player);
+            xy[0] = ch.a_x;
+            xy[1] = ch.a_y;
+        }
+        for (i = ch.a_x-1; i < ch.n; ++i){
+            for (j = ch.a_y+1; j < ch.n; ++j){
+                if (ch.pawn_owner(i, j) == EMPTY){
+                    ch.a_x = i;
+                    ch.a_y = j;
+                }
+            }
+        }
+        if (i == ch.n && j == ch.n){
+            for (i = 0; i < ch.n; ++i){
+                for (j = 0; j < ch.n; ++j){
+                    if (ch.pawn_owner(i, j) == EMPTY){
+                        ch.a_x = i;
+                        ch.a_y = j;
+                    }
+                }
+            }
+        }
+        move_switch(ch, EMPTY);
+        xy[2] = ch.a_x;
+        xy[3] = ch.a_y;
+    } while (next_move == false && xy[2] == -1);
+}
+
 void checkers::play(checkers &ch){
     int i = WHITE, i2 = BLACK, x, y, x1, y1;
+    int xy[4];
     while (true){
-        std::cout << ch << "\n";
-        std::cout << "Tura gracza: " << checkers::player_symbol(i) << "\n";
-        std::cin >> x >> y >> x1 >> y1;
-        int move = ch.move(x, y, i, x1, y1, 0);
-        if (move == 2){
-            while (move == 2 || move == 0){
+        move(ch, xy, i, false);
+        x = xy[0]; y = xy[1]; x1 = xy[2]; y1 = xy[3];
+        int mv = ch.move(x, y, i, x1, y1, 0);
+        if (mv == 2){
+            while (mv == 2 || mv == 0){
                 std::cout << ch << "\n";
-                if (move == 2){
+                if (mv == 2){
                     x = x1; y = y1;
                 }
                 std::cout << "Your next move " << x << " " << y << " ->\n";
-                std::cin >> x1 >> y1;
+                move(ch, xy, i, true);
+                x1 = xy[2]; y1 = xy[3];
                 if (x1 == -1){
-                    move = 1;
+                    mv = 1;
                     break;
                 }
-                move = ch.move(x, y, i, x1, y1, 1);
+                mv = ch.move(x, y, i, x1, y1, 1);
             }
         }
-        if (move == 1)
+        if (mv == 1)
             std::swap(i, i2);
         if (ch.is_end_of_game())
             break;
     }
-    std::cout << "Player " << ch.check_who_won() << "won!\n";
+    std::cout << "Player " << ch.check_who_won() << " won!\n";
 }
 
 std::string symobol(int i){
@@ -548,21 +653,41 @@ std::ostream& operator<<(std::ostream& os, const checkers& ch){
     for (int i = 0; i < ch.n; ++i){
         os << symobol(i);
         for (int j = 0; j < ch.n; ++j){
-            switch (ch.tab[i*ch.n + j]){
-                case WHITE:
-                    os << outW;
-                    break;
-                case BLACK:
-                    os << outB;
-                    break;
-                case queenB:
-                    os << outQb;
-                    break;
-                case queenW:
-                    os << outQw;
-                    break;
-                default:
-                    os << outE;
+            if (i == ch.a_x && j == ch.a_y){
+                switch (ch.tab[i*ch.n + j]){
+                    case WHITE:
+                        os << outWW;
+                        break;
+                    case BLACK:
+                        os << outBB;
+                        break;
+                    case queenB:
+                        os << outQbb;
+                        break;
+                    case queenW:
+                        os << outQww;
+                        break;
+                    default:
+                        os << outEe;
+                }
+                
+            } else {
+                switch (ch.tab[i*ch.n + j]){
+                    case WHITE:
+                        os << outW;
+                        break;
+                    case BLACK:
+                        os << outB;
+                        break;
+                    case queenB:
+                        os << outQb;
+                        break;
+                    case queenW:
+                        os << outQw;
+                        break;
+                    default:
+                        os << outE;
+                }
             }
         }
         os << "\n";

@@ -10,6 +10,7 @@
 #include "checkers.hpp"
 
 int main(int argc, const char * argv[]) {
+    system("stty raw");
 	srand( time( NULL ) );
     checkers warcaby;
     checkers::play(warcaby);

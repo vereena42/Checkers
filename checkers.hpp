@@ -20,10 +20,15 @@
 //X OS
 /*
 #define outE "⬜️"
+#define outEe "⬛️"
 #define outW "♥️"
+#define outWW "💙"
 #define outB "♠️"
+#define outBB "♣️"
 #define outQw "👸🏻"
+#define outQww "👩🏼"
 #define outQb "👸🏿"
+#define outQbb "👩🏿"
 #define zs "⚜️"
 #define z0 "0️⃣"
 #define z1 "1️⃣"
@@ -56,6 +61,7 @@ public:
     int n;
     int row_with_pawn;
     int * tab;
+    int a_x, a_y;
     checkers();
     checkers(int n, int rwp);
     ~checkers();
@@ -84,7 +90,8 @@ public:
     int calculate_future_queen_kills();
     static std::string player_symbol(int k);
     static void play(checkers &ch);
-    
+    static void move(checkers &ch, int * tab, int player, bool next_move);
+    static void move_switch(checkers &ch, int player);
 };
 std::ostream& operator<<(std::ostream& os, const checkers& ch);
 
