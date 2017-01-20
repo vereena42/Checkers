@@ -92,11 +92,13 @@ int main(){
     }
     int i;
     void* args[] = {&n, &Adev, &i};
-	void* args2[] = {&Adev};
+    int thread_num = blocks_per_grid * threads_per_block;
+	void* args2[] = {&Adev, &thread_num};
     for (i = 1; i < how_deep+1; i++){
         res = cuLaunchKernel(create_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
         res = cuLaunchKernel(nl, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
     }
+    printf("AAA\n");
     if (res != CUDA_SUCCESS){
         printf("cannot run kernel\n");
         exit(1);
@@ -107,11 +109,13 @@ int main(){
         exit(1);
     }
 
-	res = cuLaunchKernel(alpha_beta, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
+	res = cuLaunchKernel(alpha_beta, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args2, 0);
     if (res != CUDA_SUCCESS){
         printf("cannot run kernel\n");
         exit(1);
     }
+
+    printf("Alpha-beta runned\n");
 
 	res = cuLaunchKernel(print_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
     if (res != CUDA_SUCCESS){

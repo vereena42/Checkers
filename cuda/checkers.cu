@@ -1,5 +1,4 @@
 #include<cstdio>
-#include<queue>
 #include<vector>
 
 struct checkers_point{
@@ -12,6 +11,78 @@ struct checkers_point{
     bool min_max;
     int value;
     int player;
+};
+
+class Queue{
+    private:
+        checkers_point * first = NULL;
+        checkers_point * last = NULL;
+        int size = 0;
+    public:
+		__device__
+			void add_one(checkers_point * point) {
+				if(point == NULL)
+					return;
+				if(first == NULL) {
+					this->first = point;
+					this->last = point;
+				}
+				else {
+					this->last->next = point;
+					point->prev = this->last;
+					this->last = point;
+				}
+				this->size = this->size + 1;
+			}
+        __device__
+            void add(checkers_point * layer) {
+				if(layer == NULL)
+					return;
+				int counter = 0;
+                if(this->first == NULL) {
+                    this->first = layer;
+                }
+                else {
+                    this->last->next=layer;
+                    layer->prev=this->last;
+                }
+				checkers_point * temp = layer;
+				counter+=1;
+				while(temp->next != NULL) {
+					temp = temp->next;
+					counter+=1;
+				}
+				this->last = temp;
+				this->size = this->size + counter;
+            }
+		
+		__device__
+			checkers_point * pop() {
+				checkers_point * firs,* seco;
+				firs = this->first;
+				if(firs == NULL)
+					return NULL;
+				else
+					seco = firs->next;
+				if(firs->parent != seco->parent) {
+					firs->next = NULL;
+					seco->prev = NULL;
+				}
+				this->first = seco;
+				this->size = this->size - 1;
+				return firs;
+			}
+		
+		__device__
+			bool empty() {
+				return this->size == 0;
+			}
+
+		__device__
+			void clean() {
+				while(this->size > 0)
+					this->pop();
+			}
 };
 
 
@@ -60,64 +131,59 @@ __device__
         } 
         
         //deleting all nodes in BFS order
-        std::queue <checkers_point *> Q;
-        checkers_point * temp, child;
-        Q.push(ch);
+        Queue Q;
+        checkers_point * temp, * child;
+        Q.add_one(ch);
 
         while(!Q.empty()) {
-            temp = Q.front();
-            Q.pop();
+            temp = Q.pop();
 
             child = temp->children;
-            while(child != NULL) {
-                Q.push(child);
-                child = child->next;
-            }
+			if(child != NULL)
+            	Q.add(child);
             delete temp;
          }
     }
 
 __device__
-    void change_tree_to_subtree(checkers_point * old_tree, checkers_point * new_tree) {
+    void change_tree_to_subtree(checkers_point * old_tree, checkers_point * new_tree, int thread_num) {
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
-        std::vector <checkers_point *> vec;
+        checkers_point ** V = new checkers_point *[thread_num];
         if(thid == 0){
             new_tree->parent = NULL;
             checkers_point * child = old_tree->children;
-            checkers_point * grandchild;
-            checkers_point * ggchild;
             checkers_point * temp;
-            while(child != NULL) {
-                if(child != new_tree) {
-                    grandchild = child->children;
-                    while(grandchild!=NULL) {
-                        ggchild = grand_child->children;
-                        while(ggchild != NULL) {
-                            ggchild->parent = NULL;
-                            vec.push_back(ggchild);
-                            ggchild = ggchild->next;
-                        }
-                        temp = grandchild;
-                        granchild = granchild->next;
-                        delete temp;
-                    }    
-                }
-                temp = child;
-                child = child->next;
-                delete temp;
+            Queue Q;
+            int count = 0;
+
+            Q.add(child);
+            while(!Q.empty() && count<thread_num) {
+                temp = Q.pop();
+                V[count] = temp;
+                if(temp->children !=NULL)
+                    Q.add(temp->children);
+                count++;
             }
-            delete old_tree;
+            Q.clean();
+
+            temp = old_tree;
+            old_tree = new_tree;
+            delete temp;
         }
         __syncthreads();
-        if(thid < vec.size()) {
-            checkers_point * my_child = vec[thid];
+        if(thid < thread_num) {
+            checkers_point * my_child = V[thid];
             delete_subtree(my_child);
         }
     }
 
 __global__
-	void alpha_beta(checkers_point * ch){
-		change_tree_to_subtree(ch, ch->children);
+	void alpha_beta(checkers_point * ch, int thread_num){
+	    if((blockIdx.x * blockDim.x)+threadIdx.x == 0)
+	        printf("Wartosci: %d %d\n",ch->value,ch->children->value);
+		change_tree_to_subtree(ch, ch->children, thread_num);
+		if((blockIdx.x * blockDim.x)+threadIdx.x == 0)
+		    printf("Wartosci: %d %d\n", ch->value, ch->children->value);
 	}
     
 __global__
