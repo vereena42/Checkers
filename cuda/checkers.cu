@@ -86,12 +86,22 @@ __global__
     }
 
 __global__
-    void set_root(checkers_point * ch, int * tab){
+    void set_root(checkers_point * ch, int * tab, int size){
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
         if (thid == 0){
 	    ch->value = 1;
-	    for (int i = 0; i < 64; ++i)
+	    for (int i = 0; i < size*size; ++i)
 		ch->board[i] = tab[i]; 
+        }
+    }
+
+__global__
+    void copy_best_result(checkers_point * ch, int * tab, int size){
+        int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
+        if (thid == 0){
+	//find the best board!
+            for (int i = 0; i < size*size; ++i)
+                tab[i] = ch->board[i];
         }
     }
 
