@@ -59,13 +59,18 @@ int main(){
         exit(1);
     }
 
-    CUfunction create_tree, print_tree, set_root, copy_best_result;
+    CUfunction create_tree, delete_tree, print_tree, set_root, copy_best_result;
     res = cuModuleGetFunction(&create_tree, cuModule, "create_tree");
     if (res != CUDA_SUCCESS){
         printf("cannot acquire kernel handle\n");
         exit(1);
     }
-    res = cuModuleGetFunction(&print_tree, cuModule, "print_tree");
+	res = cuModuleGetFunction(&delete_tree, cuModule, "delete_tree");
+    if (res != CUDA_SUCCESS){
+        printf("cannot acquire kernel handle\n");
+        exit(1);
+	}
+    res = cuModuleGetFunction(&print_tree, cuModule, "print_tree"); 
     if (res != CUDA_SUCCESS){
         printf("cannot acquire kernel handle\n");
         exit(1);
@@ -105,8 +110,14 @@ int main(){
 
     int blocks_per_grid = (n+1023)/1024;
     int threads_per_block = 1024;
-    CUdeviceptr Adev, Atab;
+	int num_threads = threads_per_block * blocks_per_grid;
+    CUdeviceptr Adev, Atab, Vdev;
     res = cuMemAlloc(&Adev, size);
+    if (res != CUDA_SUCCESS){
+        printf("cuMemAlloc\n");
+        exit(1);
+    }
+    res = cuMemAlloc(&Vdev, num_threads * sizeof(checkers_point*));
     if (res != CUDA_SUCCESS){
         printf("cuMemAlloc\n");
         exit(1);
@@ -123,6 +134,7 @@ int main(){
     }
     int i = 1;
     void* args[] = {&n, &Adev, &i};
+	void* args2[] = {&Adev, &num_threads, &Vdev};
     void* args_root[] = {&Adev, &Atab, &siize};
     res = cuLaunchKernel(set_root, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args_root, 0);
     if (res != CUDA_SUCCESS){
@@ -141,6 +153,16 @@ int main(){
         printf("cannot run kernel\n");
         exit(1);
     }
+	res = cuLaunchKernel(delete_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args2, 0);
+    if (res != CUDA_SUCCESS){
+        printf("cannot run kernel\n");
+        exit(1);
+	}
+	res = cuLaunchKernel(print_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
+    if (res != CUDA_SUCCESS){
+        printf("cannot run kernel\n");
+        exit(1);
+	}	
     res = cuLaunchKernel(copy_best_result, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args_root, 0);
     if (res != CUDA_SUCCESS){
         printf("cannot run kernel\n");
@@ -148,6 +170,7 @@ int main(){
     }
     cuMemFree(Adev);
     cuMemFree(Atab);
+    cuMemFree(Vdev);
     cuCtxDestroy(cuContext);
 //    return tab_with_board;
     return 0;

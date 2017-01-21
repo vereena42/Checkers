@@ -17,6 +17,85 @@ struct checkers_point{
     int player;
 };
 
+class Queue{
+    private:
+        checkers_point * first = NULL;
+        checkers_point * last = NULL;
+        int size = 0;
+    public:
+		__device__
+			void add_one(checkers_point * point) {
+				if(point == NULL)
+					return;
+				if(first == NULL) {
+					this->first = point;
+					this->last = point;
+				}
+				else {
+					this->last->next = point;
+					this->last = point;
+				}
+				this->size = this->size + 1;
+			}
+        __device__
+            void add(checkers_point * layer) {
+				if(layer == NULL)
+					return;
+				int counter = 0;
+                if(this->first == NULL) {
+                    this->first = layer;
+                }
+                else {
+                    this->last->next=layer;
+                }
+				checkers_point * temp = layer;
+				counter+=1;
+				while(temp->next != NULL) {
+					temp = temp->next;
+					counter+=1;
+				}
+				this->last = temp;
+				this->size = this->size + counter;
+            }
+		
+		__device__
+			checkers_point * pop() {
+				checkers_point * firs,* seco;
+				firs = this->first;
+				if(firs == NULL)
+					return NULL;
+				else
+					seco = firs->next;
+				if(firs->parent != seco->parent) {
+					firs->next = NULL;
+				}
+				this->first = seco;
+				this->size = this->size - 1;
+				return firs;
+			}
+		
+		__device__
+			bool empty() {
+				return this->size == 0;
+			}
+
+		__device__
+			int get_size() {
+			return this->size;
+		}
+
+		__device__
+		    checkers_point * front() {
+                return this->first;
+            }
+
+		__device__
+			void clean() {
+				while(this->size > 0)
+					this->pop();
+			}
+};
+
 extern "C" {
 
 __device__
@@ -252,7 +331,49 @@ __global__
             }
         }
     }
-    
+
+__global__
+    void delete_tree(checkers_point * ch, int thread_num, checkers_point ** V) {
+        int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
+		int count;
+		if(thid == 0){
+            checkers_point * child = ch->children;
+            checkers_point * temp;
+            Queue Q;
+            int count = 0;
+
+            Q.add(child);
+            while(!Q.empty() && Q.get_size()+Q.front()->how_much_children < thread_num) {
+                temp = Q.pop();
+                if(temp->children !=NULL)
+                    Q.add(temp->children);
+				delete temp;
+            }
+
+			count = 0;
+            while(!Q.empty()) {
+				temp = Q.pop();
+				V[count]=temp;
+				count++;
+			}
+        }
+        __syncthreads();
+        if(thid < count) {
+            checkers_point * my_child = V[thid];
+            Queue Q;
+        	checkers_point * temp, * child;
+        	Q.add_one(my_child);
+
+        	while(!Q.empty()) {
+            	temp = Q.pop();
+
+            	child = temp->children;
+				if(child != NULL)
+            		Q.add(child);
+            	delete temp;
+			}
+		}
+    }
     
 __device__
     void print_tr(checkers_point * ch){
