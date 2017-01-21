@@ -34,6 +34,8 @@ int main(){
             tab_with_board[(siize*siize-1)-(i*siize+2*j+(i%2))] = WHITE;
         }
     }
+	for (int i = 0; i < 64; i++)
+		printf("%d ", tab_with_board[i]);
     //^ do usuniecia
     cuInit(0);
     CUdevice cuDevice;
@@ -119,7 +121,7 @@ int main(){
         printf("cuMemcpy\n");
         exit(1);
     }
-    int i;
+    int i = 1;
     void* args[] = {&n, &Adev, &i};
     void* args_root[] = {&Adev, &Atab, &siize};
     res = cuLaunchKernel(set_root, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args_root, 0);
@@ -127,9 +129,9 @@ int main(){
         printf("cannot run kernel\n");
         exit(1);
     }
-    for (i = 1; i < how_deep+1; i++){
+//    for (i = 1; i < how_deep+1; i++){
         res = cuLaunchKernel(create_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
-    }
+  //  }
     if (res != CUDA_SUCCESS){
         printf("cannot run kernel\n");
         exit(1);
