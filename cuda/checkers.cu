@@ -14,6 +14,8 @@ struct checkers_point{
     checkers_point * parent = NULL;
     bool min_max;
     int value;
+    int alpha;
+    int beta;
     int player;
 };
 
@@ -374,6 +376,86 @@ __global__
 			}
 		}
     }
+__device__
+	void minmax(checkers_point * ch) {
+		//zjedz do lisci i wrzuc je na kolejke
+		Queue tempQueue;
+		Queue Q;
+		checkers_point * temp;
+		tempQueue.add_one(ch);
+		while(!tempQueue.empty()) {
+			temp = tempQueue.pop();
+			if(temp->alpha!=-1000000000 || temp->beta!=1000000000)
+				Q.add_one(temp);
+			if(temp->children==NULL) {
+                int wynik = 0;//policz stan planszy
+                temp->alpha = wynik;
+                temp->beta = wynik;
+                Q.add_one(temp);
+            }
+			if(temp->children!=NULL)
+				tempQueue.add(temp->children);
+		}
+		//pamietaj parenta pierwszego z kolejki
+		checkers_point * parent = Q.front()->parent;		
+		//lecac po kolejce modyfikuj parenta danego liscia
+			//jak parent nowego goscia jest inny niz poprzedni dorzuc poprzedni na kolejke i zastap go w zmiennej nowym
+		while(!Q.empty()) {
+			temp = Q.pop();
+			if(temp->parent!=NULL) {
+				if(temp->min_max)
+					temp->parent->beta = min(temp->alpha,temp->parent->beta);
+				else
+					temp->parent->alpha = max(temp->beta,temp->parent->alpha);
+			}	
+			if(parent!=temp->parent) {
+				Q.add_one(parent);
+				parent = temp->parent;
+			}
+		}
+		//tadam!
+
+	}
+
+__global__
+    void alpha_beta(checkers_point * ch, int thread_num, checkers_point ** V) {
+        //rozdziel i wrzuc do V
+		int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
+		int count;
+		if(thid == 0){
+            checkers_point * temp;
+            Queue Q;
+            int count = 0;
+
+            Q.add(ch);
+            while(!Q.empty() && Q.get_size()+Q.front()->how_much_children < thread_num) {
+                temp = Q.pop();
+                if(temp->children !=NULL)
+                    Q.add(temp->children);
+				temp->alpha=-1000000000;
+				temp->beta=1000000000;
+            }
+
+			count = 0;
+            while(!Q.empty()) {
+				temp = Q.pop();
+				temp->alpha=-1000000000;
+				temp->beta=1000000000;
+				V[count]=temp;
+				count++;
+			}
+        }
+		__syncthreads();
+        //policz dla tych w V
+		if(thid<count)
+			minmax(V[thid]);
+		__syncthreads();
+        //policz w gore
+		if(thid == 0) {
+			minmax(ch);
+		}
+		//zwroc wynik (?)
+	}
     
 __device__
     void print_tr(checkers_point * ch){
