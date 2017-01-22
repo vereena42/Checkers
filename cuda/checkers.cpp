@@ -23,23 +23,8 @@ struct checkers_point{
 #define queenW 11
 #define queenB 22
 
-int main(){
-    //przekazane powinny zostac: int siize, default_row_with_pawn,     int * tab_with_board;
-    int siize = 8;
-    int * tab_with_board;
-    int default_row_with_pawn = 3;
-    tab_with_board = (int*) malloc(sizeof(int)*siize*siize);
-    for (int i = 0; i < siize*siize; i++)
-        tab_with_board[i] = EMPTY;
-    for (int i = 0; i < default_row_with_pawn; ++i){
-        for (int j = 0; j < siize/2; ++j){
-            tab_with_board[i*siize+2*j+(i%2)] = BLACK;
-            tab_with_board[(siize*siize-1)-(i*siize+2*j+(i%2))] = WHITE;
-        }
-    }
-	for (int i = 0; i < 64; i++)
-		printf("%d ", tab_with_board[i]);
-    //^ do usuniecia
+int * computer_turn(int siize, int default_row_with_pawn, int * tab_with_board){
+    
     cuInit(0);
     CUdevice cuDevice;
     CUresult res = cuDeviceGet(&cuDevice, 0);
@@ -62,7 +47,13 @@ int main(){
         exit(1);
     }
 
-    CUfunction create_tree, delete_tree, print_tree, set_root, copy_best_result;
+    CUfunction alpha_beta, create_tree, delete_tree, print_tree, set_root, copy_best_result;
+    
+    res = cuModuleGetFunction(&alpha_beta, cuModule, "alpha_beta");
+    if (res != CUDA_SUCCESS){
+        printf("cannot acquire kernel handle\n");
+        exit(1);
+	}
     res = cuModuleGetFunction(&create_tree, cuModule, "create_tree");
     if (res != CUDA_SUCCESS){
         printf("cannot acquire kernel handle\n");
@@ -96,7 +87,7 @@ int main(){
     for (int i = 0; i < 4; i++){
         n *= max_children;
     }
-    printf("N: %d\n", n);
+    //printf("N: %d\n", n);
     size_t size = sizeof(checkers_point)*n;
     size_t size_tab = sizeof(int)*siize*siize;
     checkers_point * a = (checkers_point*) malloc(size);
@@ -113,7 +104,9 @@ int main(){
 
     int blocks_per_grid = (n+1023)/1024;
     int threads_per_block = 1024;
-	int num_threads = threads_per_block * blocks_per_grid;
+    int blocks_per_grid2 = 100;
+    int threads_per_block2 = 100;
+	int num_threads = threads_per_block2 * blocks_per_grid2;
     CUdeviceptr Adev, Atab, Vdev;
     res = cuMemAlloc(&Adev, size);
     if (res != CUDA_SUCCESS){
@@ -138,6 +131,7 @@ int main(){
     int i = 1;
     void* args[] = {&n, &Adev, &i};
 	void* args2[] = {&Adev, &num_threads, &Vdev};
+	void* args3[] = {&Adev, &num_threads, &Vdev};
     void* args_root[] = {&Adev, &Atab, &siize};
     res = cuLaunchKernel(set_root, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args_root, 0);
     if (res != CUDA_SUCCESS){
@@ -152,30 +146,31 @@ int main(){
         printf("cannot run kernel\n");
         exit(1);
     }
-    res = cuLaunchKernel(print_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
+    res = cuLaunchKernel(alpha_beta, blocks_per_grid2, 1, 1, threads_per_block2, 1, 1, 0, 0, args3, 0);
     if (res != CUDA_SUCCESS){
         printf("cannot run kernel\n");
         exit(1);
     }
-	res = cuLaunchKernel(delete_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args2, 0);
+	res = cuLaunchKernel(delete_tree, blocks_per_grid2, 1, 1, threads_per_block2, 1, 1, 0, 0, args2, 0);
     if (res != CUDA_SUCCESS){
         printf("cannot run kernel\n");
         exit(1);
 	}
-	res = cuLaunchKernel(print_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
-    if (res != CUDA_SUCCESS){
-        printf("cannot run kernel\n");
-        exit(1);
-	}	
     res = cuLaunchKernel(copy_best_result, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args_root, 0);
     if (res != CUDA_SUCCESS){
         printf("cannot run kernel\n");
         exit(1);
     }
+
+	res = cuMemcpyDtoH(tab_with_board, Atab, size_tab);
+    if (res != CUDA_SUCCESS){
+        printf("cuMemcpy\n");
+        exit(1);
+	}
     cuMemFree(Adev);
     cuMemFree(Atab);
     cuMemFree(Vdev);
     cuCtxDestroy(cuContext);
-//    return tab_with_board;
-    return 0;
+
+    return tab_with_board;
 }
