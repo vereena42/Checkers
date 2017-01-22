@@ -15,7 +15,88 @@ struct checkers_point{
     checkers_point * parent = NULL;
     bool min_max;
     int value;
+    int alpha;
+    int beta;
     int player;
+};
+
+class Queue{
+    private:
+        checkers_point * first = NULL;
+        checkers_point * last = NULL;
+        int size = 0;
+    public:
+		__device__
+			void add_one(checkers_point * point) {
+				if(point == NULL)
+					return;
+				if(first == NULL) {
+					this->first = point;
+					this->last = point;
+				}
+				else {
+					this->last->next = point;
+					this->last = point;
+				}
+				this->size = this->size + 1;
+			}
+        __device__
+            void add(checkers_point * layer) {
+				if(layer == NULL)
+					return;
+				int counter = 0;
+                if(this->first == NULL) {
+                    this->first = layer;
+                }
+                else {
+                    this->last->next=layer;
+                }
+				checkers_point * temp = layer;
+				counter+=1;
+				while(temp->next != NULL) {
+					temp = temp->next;
+					counter+=1;
+				}
+				this->last = temp;
+				this->size = this->size + counter;
+            }
+		
+		__device__
+			checkers_point * pop() {
+				checkers_point * firs,* seco;
+				firs = this->first;
+				if(firs == NULL)
+					return NULL;
+				else
+					seco = firs->next;
+				if(firs->parent != seco->parent) {
+					firs->next = NULL;
+				}
+				this->first = seco;
+				this->size = this->size - 1;
+				return firs;
+			}
+		
+		__device__
+			bool empty() {
+				return this->size == 0;
+			}
+
+		__device__
+			int get_size() {
+			return this->size;
+		}
+
+		__device__
+		    checkers_point * front() {
+                return this->first;
+            }
+
+		__device__
+			void clean() {
+				while(this->size > 0)
+					this->pop();
+			}
 };
 
 extern "C" {
@@ -255,6 +336,132 @@ __global__
         }
     }
 
+//<<<<<<< HEAD
+//=======
+__global__
+    void delete_tree(checkers_point * ch, int thread_num, checkers_point ** V) {
+        int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
+		int count;
+		if(thid == 0){
+            checkers_point * child = ch->children;
+            checkers_point * temp;
+            Queue Q;
+            int count = 0;
+
+            Q.add(child);
+            while(!Q.empty() && Q.get_size()+Q.front()->how_much_children < thread_num) {
+                temp = Q.pop();
+                if(temp->children !=NULL)
+                    Q.add(temp->children);
+				delete temp;
+            }
+
+			count = 0;
+            while(!Q.empty()) {
+				temp = Q.pop();
+				V[count]=temp;
+				count++;
+			}
+        }
+        __syncthreads();
+        if(thid < count) {
+            checkers_point * my_child = V[thid];
+            Queue Q;
+        	checkers_point * temp, * child;
+        	Q.add_one(my_child);
+
+        	while(!Q.empty()) {
+            	temp = Q.pop();
+
+            	child = temp->children;
+				if(child != NULL)
+            		Q.add(child);
+            	delete temp;
+			}
+		}
+    }
+__device__
+	void minmax(checkers_point * ch) {
+		//zjedz do lisci i wrzuc je na kolejke
+		Queue tempQueue;
+		Queue Q;
+		checkers_point * temp;
+		tempQueue.add_one(ch);
+		while(!tempQueue.empty()) {
+			temp = tempQueue.pop();
+			if(temp->alpha!=-1000000000 || temp->beta!=1000000000)
+				Q.add_one(temp);
+			if(temp->children==NULL) {
+                int wynik = 0;//policz stan planszy
+                temp->alpha = wynik;
+                temp->beta = wynik;
+                Q.add_one(temp);
+            }
+			if(temp->children!=NULL)
+				tempQueue.add(temp->children);
+		}
+		//pamietaj parenta pierwszego z kolejki
+		checkers_point * parent = Q.front()->parent;		
+		//lecac po kolejce modyfikuj parenta danego liscia
+			//jak parent nowego goscia jest inny niz poprzedni dorzuc poprzedni na kolejke i zastap go w zmiennej nowym
+		while(!Q.empty()) {
+			temp = Q.pop();
+			if(temp->parent!=NULL) {
+				if(temp->min_max)
+					temp->parent->beta = min(temp->alpha,temp->parent->beta);
+				else
+					temp->parent->alpha = max(temp->beta,temp->parent->alpha);
+			}	
+			if(parent!=temp->parent) {
+				Q.add_one(parent);
+				parent = temp->parent;
+			}
+		}
+		//tadam!
+
+	}
+
+__global__
+    void alpha_beta(checkers_point * ch, int thread_num, checkers_point ** V) {
+        //rozdziel i wrzuc do V
+		int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
+		int count;
+		if(thid == 0){
+            checkers_point * temp;
+            Queue Q;
+            int count = 0;
+
+            Q.add(ch);
+            while(!Q.empty() && Q.get_size()+Q.front()->how_much_children < thread_num) {
+                temp = Q.pop();
+                if(temp->children !=NULL)
+                    Q.add(temp->children);
+				temp->alpha=-1000000000;
+				temp->beta=1000000000;
+            }
+
+			count = 0;
+            while(!Q.empty()) {
+				temp = Q.pop();
+				temp->alpha=-1000000000;
+				temp->beta=1000000000;
+				V[count]=temp;
+				count++;
+			}
+        }
+		__syncthreads();
+        //policz dla tych w V
+		if(thid<count)
+			minmax(V[thid]);
+		__syncthreads();
+        //policz w gore
+		if(thid == 0) {
+			minmax(ch);
+		}
+		//zwroc wynik (?)
+	}
+    
+//>>>>>>> d7adecfe7e0407bbe669ef75a06f1ba72ca587af
 __device__
     void print_tr(checkers_point * ch){
         if (ch == NULL)
