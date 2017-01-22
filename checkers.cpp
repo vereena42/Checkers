@@ -594,27 +594,35 @@ void checkers::play(checkers &ch){
     int i = WHITE, i2 = BLACK, x, y, x1, y1;
     int xy[4];
     while (true){
-        move(ch, xy, i, false);
-        x = xy[0]; y = xy[1]; x1 = xy[2]; y1 = xy[3];
-        int mv = ch.move(x, y, i, x1, y1, 0);
-        if (mv == 2){
-            while (mv == 2 || mv == 0){
-                std::cout << ch << "\n";
-                if (mv == 2){
-                    x = x1; y = y1;
-                }
-                std::cout << "Your next move " << x << " " << y << " ->\n";
-                move(ch, xy, i, true);
-                x1 = xy[2]; y1 = xy[3];
-                if (x1 == -1){
-                    mv = 1;
-                    break;
-                }
-                mv = ch.move(x, y, i, x1, y1, 1);
+	if (i == BLACK){
+	        move(ch, xy, i, false);
+        	x = xy[0]; y = xy[1]; x1 = xy[2]; y1 = xy[3];
+        	int mv = ch.move(x, y, i, x1, y1, 0);
+        	if (mv == 2){
+           	    while (mv == 2 || mv == 0){
+                        std::cout << ch << "\n";
+               		if (mv == 2){
+              	            x = x1; y = y1;
+                	}
+                	std::cout << "Your next move " << x << " " << y << " ->\n";
+                	move(ch, xy, i, true);
+                	x1 = xy[2]; y1 = xy[3];
+                	if (x1 == -1){
+                    	    mv = 1;
+                    	    break;
+                	}
+                    mv = ch.move(x, y, i, x1, y1, 1);
+            	}
             }
-        }
-        if (mv == 1)
-            std::swap(i, i2);
+            if (mv == 1)
+                std::swap(i, i2);
+	    }
+	} else {
+		int * new_board = computer_turn(chsize, ch.row_with_pawn, ch.tab);
+		for (int k = 0; k < ch.size*ch.size; k++)
+		    ch.board[k] = new_board[k];
+		swap(i, i2);
+	}
         if (ch.is_end_of_game())
             break;
     }
