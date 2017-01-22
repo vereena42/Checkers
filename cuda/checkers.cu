@@ -380,6 +380,171 @@ __global__
 			}
 		}
     }
+
+__device__
+	int calculate_pawns_value(int * tab){
+    	int count = 0;
+		int n=8;
+    	for(int i=0;i<n*n;i++){
+        	if(tab[i] == WHITE)
+            	count+=3;
+        	else if(tab[i] == queenW)
+            	count+=5;
+        	else if(tab[i] == BLACK)
+            	count-=3;
+        	else if(tab[i] == queenB)
+        	    count-=5;
+    	}
+    	return (int)(((49.5*count)/57.0) + 49.5);
+	}
+
+__device__
+	int calculate_dist_to_be_queen(int * tab){
+		int n=8;
+    	int black_count=0,white_count=0,black_dist=0,white_dist=0;
+    	for(int row=0;row<n;row++){
+        	for(int col=0;col<n;col++){
+            	if(tab[row*n+col] == WHITE){
+                	white_count++;
+                	white_dist+=(n-1-row);
+            	}
+            	else if(tab[row*n+col] == BLACK){
+                	black_count++;
+                	black_dist+=row;
+            	}
+        	}
+    	}
+    	double black_val, white_val;
+    	if(white_count == 0)
+        	white_val = 0;
+    	else
+        	white_val = (double)white_dist/(double)white_count;
+    	if(black_count == 0)
+        	black_val = 0;
+    	else
+        	black_val = (double)black_dist/(double)black_count;
+    	double value = black_val - white_val;
+    	return (int)(0.495*value + 49.5);
+	}
+
+__device__
+	int calculate_future_queen_kills(int * tab){
+	int n=8;
+    int * kill_tab = new int [n*n];
+    int temp_row,temp_col,white_count=0,black_count=0,white_dead=0,black_dead=0;
+    for(int row=0;row<n;row++){
+        for(int col=0;col<n;col++){
+            kill_tab[row*n+col] = EMPTY;
+            if(tab[row*n+col] == queenB || tab[row*n+col] == queenW){
+                temp_row = row-1;
+                temp_col = col-1;
+                while(temp_row >= 1 && temp_col >= 1){
+                    if(is_a_pawn(temp_row,temp_col)){
+                        if(pawn_owner(row,col) == pawn_owner(temp_row,temp_col))
+                            break;
+                        else if(is_a_pawn(temp_row-1,temp_col-1))
+                            break;
+                        else{
+                            kill_tab[temp_row*n+temp_col] = pawn_owner(temp_row,temp_col);
+                            temp_row--;
+                            temp_col--;
+                        }
+                    }
+                    temp_row--;
+                    temp_col--;
+                }
+                temp_row = row-1;
+                temp_col = col+1;
+                while(temp_row >= 1 && temp_col <= n-2){
+                    if(is_a_pawn(temp_row,temp_col)){
+                        if(pawn_owner(row,col) == pawn_owner(temp_row,temp_col))
+                            break;
+                        else if(is_a_pawn(temp_row-1,temp_col+1))
+                            break;
+                        else{
+                            kill_tab[temp_row*n+temp_col] = pawn_owner(temp_row,temp_col);
+                            temp_row--;
+                            temp_col++;
+                        }
+                    }
+                    temp_row--;
+                    temp_col++;
+                }
+                temp_row = row+1;
+                temp_col = col-1;
+                while(temp_row <= n-2 && temp_col >= 1){
+                    if(is_a_pawn(temp_row,temp_col)){
+                        if(pawn_owner(row,col) == pawn_owner(temp_row,temp_col))
+                            break;
+                        else if(is_a_pawn(temp_row+1,temp_col-1))
+                            break;
+                        else{
+                            kill_tab[temp_row*n+temp_col] = pawn_owner(temp_row,temp_col);
+                            temp_row++;
+                            temp_col--;
+                        }
+                    }
+                    temp_row++;
+                    temp_col--;
+                }
+                temp_row = row+1;
+                temp_col = col+1;
+                while(temp_row <= n-2 && temp_col <= n-2){
+                    if(is_a_pawn(temp_row,temp_col)){
+                        if(pawn_owner(row,col) == pawn_owner(temp_row,temp_col))
+                            break;
+                        else if(is_a_pawn(temp_row+1,temp_col+1))
+                            break;
+                        else{
+                            kill_tab[temp_row*n+temp_col] = pawn_owner(temp_row,temp_col);
+                            temp_row++;
+                            temp_col++;
+                        }
+                    }
+                    temp_row++;
+                    temp_col++;
+                }
+            }
+        }
+    }
+    for(int row=0;row<n;row++){
+        for(int col=0;col<n;col++){
+            if(kill_tab[row*n+col] == WHITE)
+                white_dead++;
+            else if(kill_tab[row*n+col] == BLACK)
+                black_dead++;
+            if(is_a_pawn(row,col)){
+                if(pawn_owner(row,col) == WHITE)
+                    white_count++;
+                else
+                    black_count++;
+            }
+        }
+    }
+    double black_percent,white_percent;
+    if(black_count == 0)
+        black_percent = 1.0;
+    else
+        black_percent = (double)black_dead/(double)black_count;
+    if(white_count == 0)
+        white_percent = 1.0;
+    else
+        white_percent = (double)white_dead/(double)white_count;
+    int value = white_percent - black_percent;
+	delete kill_tab;
+    return 49.5*value+49.5;
+}
+
+__device__
+    int calculate_board_value(int * Board){
+	    int value;
+    	value=calculate_pawns_value(Board);
+    	value=100*value+calculate_dist_to_be_queen(Board);
+    	value=100*value+calculate_future_queen_kills(Board);
+    	value=10*value+(std::rand()%10);
+    	return value;
+} 
+
 __device__
 	void minmax(checkers_point * ch) {
 		//zjedz do lisci i wrzuc je na kolejke
@@ -392,7 +557,7 @@ __device__
 			if(temp->alpha!=-1000000000 || temp->beta!=1000000000)
 				Q.add_one(temp);
 			if(temp->children==NULL) {
-                int wynik = 0;//policz stan planszy
+                int wynik = calculate_board_value(temp->board);//policz stan planszy
                 temp->alpha = wynik;
                 temp->beta = wynik;
                 Q.add_one(temp);
