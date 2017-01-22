@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <stdio.h>
+#include "cuda.h"
 #define default_n 8
 #define default_row_with_pawn 3
 #define EMPTY 0
@@ -95,5 +96,20 @@ public:
 };
 std::ostream& operator<<(std::ostream& os, const checkers& ch);
 
+struct checkers_point{
+    int board[64];
+    int how_much_children;
+    checkers_point * children = NULL;
+    checkers_point * next = NULL;
+    checkers_point * prev = NULL;
+    checkers_point * parent = NULL;
+    bool min_max;
+    int alpha = -1000000000;
+    int beta = 1000000000;
+    int value;
+    int player;
+};
+
+int * computer_turn(int siize, int default_row_with_pawn, int * tab_with_board);
 
 #endif /* checkers_hpp */
