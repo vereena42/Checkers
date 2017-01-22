@@ -69,7 +69,7 @@ class Queue{
 					return NULL;
 				else
 					seco = firs->next;
-				if(firs->parent != seco->parent) {
+				if(seco==NULL || firs->parent != seco->parent) {
 					firs->next = NULL;
 				}
 				this->first = seco;
@@ -593,10 +593,9 @@ __global__
 		int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
 		int count;
 		if(thid == 0){
-            checkers_point * temp;
+		    checkers_point * temp;
             Queue Q;
             int count = 0;
-
             Q.add(ch);
             while(!Q.empty() && Q.get_size()+Q.front()->how_much_children < thread_num) {
                 temp = Q.pop();
@@ -605,7 +604,7 @@ __global__
 				temp->alpha=-1000000000;
 				temp->beta=1000000000;
             }
-
+            
 			count = 0;
             while(!Q.empty()) {
 				temp = Q.pop();
@@ -613,8 +612,8 @@ __global__
 				temp->beta=1000000000;
 				V[count]=temp;
 				count++;
-			}
-        }
+			}	
+		}
 		__syncthreads();
         //policz dla tych w V
 		if(thid<count)
@@ -622,7 +621,7 @@ __global__
 		__syncthreads();
         //policz w gore
 		if(thid == 0) {
-			minmax(ch);
+		    minmax(ch);
 		}
 		//zwroc wynik (?)
 	}
