@@ -300,7 +300,7 @@ __device__
     void ramification(checkers_point * ch2, int thid, int how_deep){
 	bool nxt = false;
 	int rand = ch2->value;
-	printf("!%d!\n", how_deep);
+	//printf("!%d!\n", how_deep);
 	for (int i = 0; i < 8*8; i++){
 	    if (ch2->board[i] != EMPTY){
 		ch2 = dismember_child(ch2, i/8, i % 8, how_deep, nxt, rand);

@@ -770,13 +770,14 @@ int * computer_turn(int siize, int row_with_pawn, int * tab_with_board){
     //printf("N: %d\n", n);
     size_t size = sizeof(checkers_point)*n;
     size_t size_tab = sizeof(int)*siize*siize;
+    int * new_board_tab = (int*) malloc(size_tab);
     checkers_point * a = (checkers_point*) malloc(size);
     res = cuMemHostRegister(a, size, 0);
     if (res != CUDA_SUCCESS){
         printf("cuMemHostRegister\n");
         exit(1);
     }
-//    res = cuMemHostRegister(tab_with_board, size_tab, 0);
+    res = cuMemHostRegister(new_board_tab, size_tab, 0);
     if (res != CUDA_SUCCESS){
         printf("cuMemHostRegister\n");
         exit(1);
@@ -805,7 +806,7 @@ int * computer_turn(int siize, int row_with_pawn, int * tab_with_board){
     }
     res = cuMemcpyHtoD(Atab, tab_with_board, size_tab);
     if (res != CUDA_SUCCESS){
-        printf("cuMemcpy\n");
+        printf("cuMemcpy1\n");
         exit(1);
     }
     int i = 1;
@@ -820,7 +821,7 @@ int * computer_turn(int siize, int row_with_pawn, int * tab_with_board){
     }
     for (i = 1; i < how_deep+1; i++){
         res = cuLaunchKernel(create_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
-	res = cuLaunchKernel(print_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
+//	res = cuLaunchKernel(print_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
     }
     if (res != CUDA_SUCCESS){
         printf("cannot run kernel\n");
@@ -842,9 +843,9 @@ int * computer_turn(int siize, int row_with_pawn, int * tab_with_board){
         exit(1);
     }
 
-	res = cuMemcpyDtoH(tab_with_board, Atab, size_tab);
+	res = cuMemcpyDtoH(new_board_tab, Atab, size_tab);
     if (res != CUDA_SUCCESS){
-        printf("cuMemcpy\n");
+        printf("cuMemcpy!\n");
         exit(1);
 	}
     cuMemFree(Adev);
