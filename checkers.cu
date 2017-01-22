@@ -272,7 +272,7 @@ __device__
 	*/
 	switch(chb->board[x*8+y]){
 	    case WHITE:
-		if (turn_no % 2 == 0){
+		if (turn_no % 2 == 1){
 //		printf("WHITE ");
 		ch = pawn(ch, x, y, x-1, y-1, nxt, NULL, rand, false);
                 ch = pawn(ch, x, y, x-1, y+1, nxt, NULL, rand, false);
@@ -281,7 +281,7 @@ __device__
 		}
 		break;
 	    case BLACK:
-		if (turn_no % 2 == 1){
+		if (turn_no % 2 == 0){
 //		printf("BLACK %d %d", x, y);
 		ch = pawn(ch, x, y, x+1, y-1, nxt, NULL, rand, false);
                 ch = pawn(ch, x, y, x+1, y+1, nxt, NULL, rand, false);

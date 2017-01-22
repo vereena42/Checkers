@@ -541,7 +541,7 @@ void checkers::move_switch(checkers &ch, int player){
                         break;
                 }
                 break;
-            case 'q':
+            case 'z':
                 ch.a_x = ch.a_y = -1;
                 return;
             default:
@@ -654,47 +654,47 @@ std::string symobol(int i){
 }
 
 std::ostream& operator<<(std::ostream& os, const checkers& ch){
-    os << zs;
+    os << zs << SSPACE;
     for (int i = 0; i < ch.n; i++)
-        os << symobol(i);
+        os << symobol(i) << SSPACE;
     os << "\n";
     for (int i = 0; i < ch.n; ++i){
-        os << symobol(i);
+        os << symobol(i) << SSPACE;
         for (int j = 0; j < ch.n; ++j){
             if (i == ch.a_x && j == ch.a_y){
                 switch (ch.tab[i*ch.n + j]){
                     case WHITE:
-                        os << outWW;
+                        os << outWW << SSPACE;
                         break;
                     case BLACK:
-                        os << outBB;
+                        os << outBB << SSPACE;
                         break;
                     case queenB:
-                        os << outQbb;
+                        os << outQbb << SSPACE;
                         break;
                     case queenW:
-                        os << outQww;
+                        os << outQww << SSPACE;
                         break;
                     default:
-                        os << outEe;
+                        os << outEe << SSPACE;
                 }
                 
             } else {
                 switch (ch.tab[i*ch.n + j]){
                     case WHITE:
-                        os << outW;
+                        os << outW << SSPACE;
                         break;
                     case BLACK:
-                        os << outB;
+                        os << outB << SSPACE;
                         break;
                     case queenB:
-                        os << outQb;
+                        os << outQb << SSPACE;
                         break;
                     case queenW:
-                        os << outQw;
+                        os << outQw << SSPACE;
                         break;
                     default:
-                        os << outE;
+                        os << outE << SSPACE;
                 }
             }
         }
@@ -703,47 +703,52 @@ std::ostream& operator<<(std::ostream& os, const checkers& ch){
     return os;
 }
 
-int * computer_turn(int siize, int row_with_pawn, int * tab_with_board){
-    
+CUdevice cuDevice;
+CUresult res;
+CUcontext cuContext;
+CUmodule cuModule;
+CUfunction alpha_beta, create_tree, delete_tree, print_tree, set_root, copy_best_result;
+CUdeviceptr Adev, Atab, Vdev;
+int how_deep = 4;
+int max_children = 12 * 2;
+int cuda_n = max_children;
+int blocks_per_grid, threads_per_block, blocks_per_grid2, threads_per_block2, num_threads;
+size_t size, size_tab;
+checkers_point * a;
+
+void cuda_start(){
     cuInit(0);
-    CUdevice cuDevice;
-    CUresult res = cuDeviceGet(&cuDevice, 0);
+    res = cuDeviceGet(&cuDevice, 0);
     if (res != CUDA_SUCCESS){
         printf("cannot acquire device 0\n");
         exit(1);
     }
-
-    CUcontext cuContext;
     res = cuCtxCreate(&cuContext, 0, cuDevice);
     if (res != CUDA_SUCCESS){
         printf("cannot create context\n");
         exit(1);
     }
-
-    CUmodule cuModule = (CUmodule)0;
+    cuModule = (CUmodule)0;
     res = cuModuleLoad(&cuModule, "checkers.ptx");
     if (res != CUDA_SUCCESS) {
         printf("cannot load module: %d\n", res);
         exit(1);
     }
-
-    CUfunction alpha_beta, create_tree, delete_tree, print_tree, set_root, copy_best_result;
-    
     res = cuModuleGetFunction(&alpha_beta, cuModule, "alpha_beta");
     if (res != CUDA_SUCCESS){
         printf("cannot acquire kernel handle\n");
         exit(1);
-	}
+        }
     res = cuModuleGetFunction(&create_tree, cuModule, "create_tree");
     if (res != CUDA_SUCCESS){
         printf("cannot acquire kernel handle\n");
         exit(1);
     }
-	res = cuModuleGetFunction(&delete_tree, cuModule, "delete_tree");
+    res = cuModuleGetFunction(&delete_tree, cuModule, "delete_tree");
     if (res != CUDA_SUCCESS){
         printf("cannot acquire kernel handle\n");
         exit(1);
-	}
+        }
     res = cuModuleGetFunction(&print_tree, cuModule, "print_tree"); 
     if (res != CUDA_SUCCESS){
         printf("cannot acquire kernel handle\n");
@@ -754,35 +759,27 @@ int * computer_turn(int siize, int row_with_pawn, int * tab_with_board){
         printf("cannot acquire kernel handle\n");
         exit(1);
     }
-
     res = cuModuleGetFunction(&copy_best_result, cuModule, "copy_best_result");
     if (res != CUDA_SUCCESS){
         printf("cannot acquire kernel handle\n");
         exit(1);
     }
-
-    int how_deep = 4;
-    int max_children = 12 * 2;
-    int n = max_children;
     for (int i = 0; i < 4; i++){
-        n *= max_children;
+        cuda_n *= max_children;
     }
-    //printf("N: %d\n", n);
-    size_t size = sizeof(checkers_point)*n;
-    size_t size_tab = sizeof(int)*siize*siize;
-    checkers_point * a = (checkers_point*) malloc(size);
+    blocks_per_grid = (cuda_n+1023)/1024;
+    threads_per_block = 1024;
+    blocks_per_grid2 = 100;
+    threads_per_block2 = 100;
+    num_threads = threads_per_block2 * blocks_per_grid2;
+    size = sizeof(checkers_point)*cuda_n;
+    size_tab = sizeof(int)*64;
+    a = (checkers_point*) malloc(size);
     res = cuMemHostRegister(a, size, 0);
     if (res != CUDA_SUCCESS){
         printf("cuMemHostRegister\n");
         exit(1);
     }
-
-    int blocks_per_grid = (n+1023)/1024;
-    int threads_per_block = 1024;
-    int blocks_per_grid2 = 100;
-    int threads_per_block2 = 100;
-	int num_threads = threads_per_block2 * blocks_per_grid2;
-    CUdeviceptr Adev, Atab, Vdev;
     res = cuMemAlloc(&Adev, size);
     if (res != CUDA_SUCCESS){
         printf("cuMemAlloc\n");
@@ -798,15 +795,32 @@ int * computer_turn(int siize, int row_with_pawn, int * tab_with_board){
         printf("cuMemAlloc\n");
         exit(1);
     }
+
+
+
+}
+
+void cuda_stop(){
+    res = cuMemHostUnregister(a);
+    if (res != CUDA_SUCCESS){
+        printf("cuMemHostUnregister!\n");
+        exit(1);
+    }
+    cuMemFree(Adev);
+    cuMemFree(Atab);
+    cuMemFree(Vdev);
+    cuCtxDestroy(cuContext);
+}
+
+int * computer_turn(int siize, int row_with_pawn, int * tab_with_board){
     res = cuMemcpyHtoD(Atab, tab_with_board, size_tab);
     if (res != CUDA_SUCCESS){
         printf("cuMemcpy1\n");
         exit(1);
     }
     int i = 1;
-    void* args[] = {&n, &Adev, &i};
-	void* args2[] = {&Adev, &num_threads, &Vdev};
-	void* args3[] = {&Adev, &num_threads, &Vdev};
+    void* args[] = {&cuda_n, &Adev, &i};
+    void* args2[] = {&Adev, &num_threads, &Vdev};
     void* args_root[] = {&Adev, &Atab, &siize};
     res = cuLaunchKernel(set_root, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args_root, 0);
     if (res != CUDA_SUCCESS){
@@ -815,39 +829,30 @@ int * computer_turn(int siize, int row_with_pawn, int * tab_with_board){
     }
     for (i = 1; i < how_deep+1; i++){
         res = cuLaunchKernel(create_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
-	res = cuLaunchKernel(print_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
     }
     if (res != CUDA_SUCCESS){
         printf("cannot run kernel\n");
         exit(1);
     }
-res = cuLaunchKernel(print_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
-    res = cuLaunchKernel(alpha_beta, blocks_per_grid2, 1, 1, threads_per_block2, 1, 1, 0, 0, args3, 0);
+    res = cuLaunchKernel(print_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
     if (res != CUDA_SUCCESS){
         printf("cannot run kernel\n");
         exit(1);
     }
-res = cuLaunchKernel(print_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
-	res = cuLaunchKernel(delete_tree, blocks_per_grid2, 1, 1, threads_per_block2, 1, 1, 0, 0, args2, 0);
+    res = cuLaunchKernel(delete_tree, blocks_per_grid2, 1, 1, threads_per_block2, 1, 1, 0, 0, args2, 0);
     if (res != CUDA_SUCCESS){
         printf("cannot run kernel\n");
         exit(1);
-	}
+    }
     res = cuLaunchKernel(copy_best_result, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args_root, 0);
     if (res != CUDA_SUCCESS){
         printf("cannot run kernel\n");
         exit(1);
     }
-
-	res = cuMemcpyDtoH(tab_with_board, Atab, size_tab);
+    res = cuMemcpyDtoH(tab_with_board, Atab, size_tab);
     if (res != CUDA_SUCCESS){
         printf("cuMemcpy!\n");
         exit(1);
-	}
-    cuMemFree(Adev);
-    cuMemFree(Atab);
-    cuMemFree(Vdev);
-    cuCtxDestroy(cuContext);
-
+    }
     return tab_with_board;
 }

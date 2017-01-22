@@ -17,9 +17,11 @@
 #define BLACK 2
 #define queenW 11
 #define queenB 22
+#define SSPACE " "
+
 
 //X OS
-/*
+
 #define outE "⬜️"
 #define outEe "⬛️"
 #define outW "♥️"
@@ -39,9 +41,9 @@
 #define z5 "5️⃣"
 #define z6 "6️⃣"
 #define z7 "7️⃣"
- */
-//LINUX
 
+//LINUX
+/*
 #define outE "_"
 #define outEe "-"
 #define outW "O"
@@ -61,7 +63,7 @@
 #define z5 "5"
 #define z6 "6"
 #define z7 "7"
-
+*/
 class checkers{
 public:
     int n;
@@ -116,5 +118,7 @@ struct checkers_point{
 };
 
 int * computer_turn(int siize, int row_with_pawn, int * tab_with_board);
+void cuda_start();
+void cuda_stop();
 
 #endif /* checkers_hpp */
