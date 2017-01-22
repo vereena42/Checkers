@@ -614,14 +614,14 @@ void checkers::play(checkers &ch){
                     mv = ch.move(x, y, i, x1, y1, 1);
             	}
             }
-            if (mv == 1)
+            if (mv == 1){
                 std::swap(i, i2);
 	    }
 	} else {
 		int * new_board = computer_turn(ch.n, ch.row_with_pawn, ch.tab);
 		for (int k = 0; k < ch.n*ch.n; k++)
 		    ch.tab[k] = new_board[k];
-		swap(i, i2);
+		std::swap(i, i2);
 	}
         if (ch.is_end_of_game())
             break;
@@ -703,7 +703,7 @@ std::ostream& operator<<(std::ostream& os, const checkers& ch){
     return os;
 }
 
-int * computer_turn(int siize, int default_row_with_pawn, int * tab_with_board){
+int * computer_turn(int siize, int row_with_pawn, int * tab_with_board){
     
     cuInit(0);
     CUdevice cuDevice;
@@ -776,7 +776,7 @@ int * computer_turn(int siize, int default_row_with_pawn, int * tab_with_board){
         printf("cuMemHostRegister\n");
         exit(1);
     }
-    res = cuMemHostRegister(tab_with_board, size_tab, 0);
+//    res = cuMemHostRegister(tab_with_board, size_tab, 0);
     if (res != CUDA_SUCCESS){
         printf("cuMemHostRegister\n");
         exit(1);

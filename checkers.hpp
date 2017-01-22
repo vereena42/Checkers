@@ -43,10 +43,15 @@
 //LINUX
 
 #define outE "_"
+#define outEe "-"
 #define outW "O"
+#define outWW "o"
 #define outB "X"
+#define outBB "x"
 #define outQw "U"
+#define outQww "u"
 #define outQb "Y"
+#define outQbb "y"
 #define zs "~"
 #define z0 "0"
 #define z1 "1"
