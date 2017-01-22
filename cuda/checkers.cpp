@@ -6,6 +6,7 @@ struct checkers_point{
     int how_much_children;
     checkers_point * children = NULL;
     checkers_point * next = NULL;
+    checkers_point * prev = NULL;
     checkers_point * parent = NULL;
     bool min_max;
     int value;
@@ -82,10 +83,10 @@ int main(){
         exit(1);
     }
 
-    int how_deep = 4;
+    int how_deep = 6;
     int max_children = 12 * 2;
     int n = max_children;
-    for (int i = 0; i < how_deep; i++){
+    for (int i = 0; i < 4; i++){
         n *= max_children;
     }
     printf("N: %d\n", n);
@@ -129,9 +130,10 @@ int main(){
         printf("cannot run kernel\n");
         exit(1);
     }
-//    for (i = 1; i < how_deep+1; i++){
+    for (i = 1; i < how_deep+1; i++){
         res = cuLaunchKernel(create_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
-  //  }
+	res = cuLaunchKernel(print_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
+    }
     if (res != CUDA_SUCCESS){
         printf("cannot run kernel\n");
         exit(1);

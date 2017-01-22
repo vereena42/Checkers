@@ -11,6 +11,7 @@ struct checkers_point{
     int how_much_children;
     checkers_point * children = NULL;
     checkers_point * next = NULL;
+    checkers_point * prev = NULL;
     checkers_point * parent = NULL;
     bool min_max;
     int value;
@@ -18,6 +19,7 @@ struct checkers_point{
 };
 
 extern "C" {
+
 
 __device__
 int pawn_owner(int * tab, int x, int y){
@@ -74,40 +76,40 @@ __device__
 bool is_move_correct(int * tab, int x, int y, int who, int x1, int y1){
     int n = 8;
     if (x < 0 || x >= n || x1 < 0 || x1 >= n || y < 0 || y >= n || y1 < 0 || y1 >= n ){
-	printf("WRONG VALUE");
+//	printf("WRONG VALUE");
         return false;
     }
     if (std::abs(x-x1) != std::abs(y-y1)){
-	printf("ABS PROBLEM");
+//	printf("ABS PROBLEM");
         return false;
     }
     int pwn_wnr = pawn_owner(tab, x, y);
     if (pwn_wnr == EMPTY){
-	printf("PAWNOWNEREMPTY");
+//	printf("PAWN OWNER EMPTY");
         return false;
     }
     if (pwn_wnr != who){
-	printf("LOL");
+//	printf("pwn_wnr != who");
         return false;
     }
     if (is_a_pawn(tab, x1, y1)){
-	printf("pawn in _");
+//	printf("pawn in _");
         return false;
     }
     if (x < x1 && who == WHITE && tab[x*n+y] != queenW){
-	printf("WHITE WRONG WAY");
+//	printf("WHITE WRONG WAY");
         return false;
     }
     if (x > x1 && who == BLACK && tab[x*n+y] != queenB){
-	printf("BLACK WRONG WAY");
+//	printf("BLACK WRONG WAY");
         return false;
     }
     if ((tab[x*n+y] == queenW || tab[x*n+y] == queenB) && (!queen_way(tab, x, y, x1, y1))){
-        printf("queen problem");
+//      printf("queen problem");
 	return false;
     }
     if (!is_queen(tab, x, y) && std::abs((x-x1)) > 1 && !correct_kill(tab, x, y, (x1+x)/2, (y1+y)/2)){
-        printf("Correct kill problem");
+//      printf("Correct kill problem");
 	return false;
     }
     return true;
@@ -121,37 +123,53 @@ __device__
 	}
 
 __device__
-	checkers_point * pawn(checkers_point * ch, int x, int y, int x1, int y1, bool &nxt, bool br){
-		if (is_move_correct(ch->board, x, y, pawn_owner(ch->board, x, y), x1, y1) == true){
-			printf("CORR!");
-			checkers_point * chld;
+	checkers_point * pawn(checkers_point * ch, int x, int y, int x1, int y1, bool &nxt, checkers_point * chprev, int & rand, bool iskillsomethingnow){
+		if (chprev != NULL)
+		return ch;
+		int * tab = ch->board;
+		if (ch->parent != NULL)
+			tab = ch->parent->board;
+		if (is_move_correct(tab, x, y, pawn_owner(tab, x, y), x1, y1) == true){
+//			printf("correct ");
+			checkers_point * chld, * chld_now;
                         if (!nxt){
-				printf("NEXT");
+//				printf("chld ");
                                 ch->children = new checkers_point;
 				ch->children->parent = ch;
+				ch->children->prev = NULL;
 				chld = ch->children;
                         } else {
+//				printf("next ");
 				ch->next = new checkers_point;
 				ch->next->parent = ch->parent;
+				ch->next->prev = ch;
                         	chld = ch->next;
 			}
-                        copy_board(chld->parent, chld);
-			/*
-			chld->value = 123;
+			chld->how_much_children = 0;
+			chld->next = chld->children = NULL;
+			if (chprev != NULL)
+				copy_board(chprev, chld);
+			else
+				copy_board(chld->parent, chld);
+			chld->parent->how_much_children++;
+			chld->value = rand++;
                         chld->board[x1*8+y1] = chld->board[x*8+y];
                         chld->board[x*8+y] = EMPTY;
+			if (iskillsomethingnow)
                         chld->board[(x+x1)/2*8+(y+y1)/2] = EMPTY;
-			/*
 			ch = chld;
+			chld_now = ch;
 			nxt = true;
-			printf("%d, %d -> %d, %d\n", x, y, x1, y1);
+//			printf("%d, %d -> %d, %d\n", x, y, x1, y1);
 			/*
-			if (ch->board[x1*8+y1] == WHITE){
-	                	ch = pawn(ch, x1, y1, x1-2, y1-2, nxt);
-        	        	ch = pawn(ch, x1, y1, x1-2, y1+2, nxt);
-			} else {
-		                ch = pawn(ch, x1, y1, x1+2, y1-2, nxt);
-  		                ch = pawn(ch, x1, y1, x1+2, y1+2, nxt);
+			if (iskillsomethingnow){
+				if (ch->board[x1*8+y1] == WHITE){
+		                	ch = pawn(ch, x1, y1, x1-2, y1-2, nxt, chld_now, rand, true);
+        		        	ch = pawn(ch, x1, y1, x1-2, y1+2, nxt, chld_now, rand, true);
+				} else {
+		        	        ch = pawn(ch, x1, y1, x1+2, y1-2, nxt, chld_now, rand, true);
+  		                	ch = pawn(ch, x1, y1, x1+2, y1+2, nxt, chld_now, rand, true);
+				}
 			}
 			*/
 		}
@@ -159,30 +177,35 @@ __device__
 	}
 
 __device__
-    checkers_point * dismember_child(checkers_point * ch, int x, int y, bool nxt, int turn_no){
+    checkers_point * dismember_child(checkers_point * ch, int x, int y, int turn_no, bool &nxt, int &rand){
 	checkers_point * chb = ch->parent;
-	if (chb == NULL){
-		printf(" NO PARENT ");
+	if (!nxt){
+//		printf(" NO PARENT ");
 		chb = ch;
 	}
-	printf("NR %d\n", chb->value); 
+	/*
+	printf("NR %d\n", chb->value);
+	for (int i = 0; i < 64; i++)
+		printf("%d ", chb->board[i]);
+	printf("\n");
+	*/
 	switch(chb->board[x*8+y]){
 	    case WHITE:
 		if (turn_no % 2 == 0){
-		printf("WHITE ");
-		ch = pawn(ch, x, y, x-1, y-1, nxt, false);
-                ch = pawn(ch, x, y, x-1, y+1, nxt, false);
-		ch = pawn(ch, x, y, x-2, y-2, nxt, false);
-		ch = pawn(ch, x, y, x-2, y+2, nxt, false);
+//		printf("WHITE ");
+		ch = pawn(ch, x, y, x-1, y-1, nxt, NULL, rand, false);
+                ch = pawn(ch, x, y, x-1, y+1, nxt, NULL, rand, false);
+		ch = pawn(ch, x, y, x-2, y-2, nxt, NULL, rand, true);
+		ch = pawn(ch, x, y, x-2, y+2, nxt, NULL, rand, true);
 		}
 		break;
 	    case BLACK:
 		if (turn_no % 2 == 1){
-		printf("BLACK %d %d", x, y);
-		ch = pawn(ch, x, y, x+1, y-1, nxt, false);
-  //              ch = pawn(ch, x, y, x+1, y+1, nxt, false);
-//		ch = pawn(ch, x, y, x+2, y-2, nxt, false);
-  //              ch = pawn(ch, x, y, x+2, y+2, nxt, false);
+//		printf("BLACK %d %d", x, y);
+		ch = pawn(ch, x, y, x+1, y-1, nxt, NULL, rand, false);
+                ch = pawn(ch, x, y, x+1, y+1, nxt, NULL, rand, false);
+		ch = pawn(ch, x, y, x+2, y-2, nxt, NULL, rand, true);
+                ch = pawn(ch, x, y, x+2, y+2, nxt, NULL, rand, true);
 		}
 		break;
 	    default:
@@ -195,36 +218,15 @@ __device__
 //add global size
     void ramification(checkers_point * ch2, int thid, int how_deep){
 	bool nxt = false;
+	int rand = ch2->value;
 	printf("!%d!\n", how_deep);
 	for (int i = 0; i < 8*8; i++){
 	    if (ch2->board[i] != EMPTY){
-		ch2 = dismember_child(ch2, i/8, i % 8, nxt, how_deep);
-		nxt |= true;
+		ch2 = dismember_child(ch2, i/8, i % 8, how_deep, nxt, rand);
 	    }
-	} 
-	/*
-        int pseudo_rand = thid % 7 + 2;
-	
-        if (!(thid == 0 && how_deep == 1))
-            printf("%d | %d | %d | %d\n", thid, ch2->value, pseudo_rand, ch2->parent->value);
-        else {
-            printf("%d | %d\n", thid, pseudo_rand);
-        }
-	
-        ch2->how_much_children = pseudo_rand;
-        ch2->children = new checkers_point;
-        ch2->children->value = ch2->value*100+1;
-        ch2->children->parent = ch2;
-        ch2 = ch2->children;
-        for (int j = 1; j < pseudo_rand; j++){
-            ch2->next = new checkers_point;
-            ch2->next->value = ch2->value+1;
-            ch2->next->parent = ch2->parent;
-            ch2 = ch2->next;
-        }
-	*/
+	}
     }
-    
+
 __global__
     void create_tree(int n, checkers_point * ch, int how_deep){
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
@@ -252,17 +254,30 @@ __global__
             }
         }
     }
-    
-    
+
 __device__
     void print_tr(checkers_point * ch){
         if (ch == NULL)
             return;
+	if (ch->children != NULL){
+	printf("(c) %d ", ch->value);
         print_tr(ch->children);
+	}
+	if (ch->next != NULL){
+	printf("(n) %d ", ch->value);
         print_tr(ch->next);
+	}
+	if (ch->next == NULL && ch->children == NULL){
         printf("%d\n", ch->value);
+	for (int i = 0; i < 64; i++){
+		printf("%d", ch->board[i]);
+		if (i % 8 == 7)
+			printf("\n");
+	}
+	printf("\n");
+	}
     }
-        
+
 __global__
     void print_tree(int n, checkers_point * ch, int i){
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
@@ -278,8 +293,10 @@ __global__
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
         if (thid == 0){
 	    ch->value = 1;
-//	    ch->children = NULL;
-//	    ch->next = NULL;
+	    ch->children = NULL;
+	    ch->next = NULL;
+	    ch->prev = NULL;
+	    ch->how_much_children = 0;
 	    for (int i = 0; i < size*size; ++i)
 		ch->board[i] = tab[i]; 
         }
