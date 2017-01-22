@@ -492,7 +492,7 @@ void checkers::move_switch(checkers &ch, int player){
     while (true){
         std::cout << "\n" << ch << "\n";
         char input = getchar();
-        if (input == 13)
+        if (input == 'q')
             break;
         switch (input) {
             case 'a':
