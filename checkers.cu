@@ -343,6 +343,7 @@ __global__
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
 		int count;
 		if(thid == 0){
+		printf("delete_tree");
             checkers_point * child = ch->children;
             checkers_point * temp;
             Queue Q;
@@ -655,8 +656,8 @@ __global__
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
         if (thid == 0){
             printf("____\n");
-            print_tr(ch);
-            printf("____\n");
+//            print_tr(ch);
+//            printf("____\n");
         }
     }
 
