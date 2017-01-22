@@ -110,6 +110,6 @@ struct checkers_point{
     int player;
 };
 
-int * computer_turn(int siize, int default_row_with_pawn, int * tab_with_board);
+int * computer_turn(int siize, int row_with_pawn, int * tab_with_board);
 
 #endif /* checkers_hpp */

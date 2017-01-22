@@ -678,9 +678,11 @@ __global__
     void copy_best_result(checkers_point * ch, int * tab, int size){
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
         if (thid == 0){
-	//find the best board!
+	    checkers_point * ch2 = ch->children;
+	    while (ch->alpha != ch2->beta)
+		ch2 = ch2->next;
             for (int i = 0; i < 64; ++i)
-                tab[i] = ch->board[i];
+                tab[i] = ch2->board[i];
         }
     }
 

@@ -618,9 +618,9 @@ void checkers::play(checkers &ch){
                 std::swap(i, i2);
 	    }
 	} else {
-		int * new_board = computer_turn(chsize, ch.row_with_pawn, ch.tab);
-		for (int k = 0; k < ch.size*ch.size; k++)
-		    ch.board[k] = new_board[k];
+		int * new_board = computer_turn(ch.n, ch.row_with_pawn, ch.tab);
+		for (int k = 0; k < ch.n*ch.n; k++)
+		    ch.tab[k] = new_board[k];
 		swap(i, i2);
 	}
         if (ch.is_end_of_game())
