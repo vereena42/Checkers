@@ -26,7 +26,7 @@ CFLAGS += $(COMMONFLAGS)
 
 
 CUDA_OBJS = checkers.ptx
-OBJS = checkers.cpp.o
+OBJS = checkers.cpp.o main.cpp.o
 TARGET = solution.x
 LINKLINE = $(LINK) -o $(TARGET) $(OBJS) $(LIB_CUDA)
 
