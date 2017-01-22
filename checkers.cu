@@ -1,4 +1,4 @@
-#include<cstdio>
+#include <cstdio>
 
 #define EMPTY 0
 #define WHITE 1
@@ -439,13 +439,13 @@ __device__
                 temp_row = row-1;
                 temp_col = col-1;
                 while(temp_row >= 1 && temp_col >= 1){
-                    if(is_a_pawn(temp_row,temp_col)){
-                        if(pawn_owner(row,col) == pawn_owner(temp_row,temp_col))
+                    if(is_a_pawn(tab,temp_row,temp_col)){
+                        if(pawn_owner(tab,row,col) == pawn_owner(tab,temp_row,temp_col))
                             break;
-                        else if(is_a_pawn(temp_row-1,temp_col-1))
+                        else if(is_a_pawn(tab,temp_row-1,temp_col-1))
                             break;
                         else{
-                            kill_tab[temp_row*n+temp_col] = pawn_owner(temp_row,temp_col);
+                            kill_tab[temp_row*n+temp_col] = pawn_owner(tab,temp_row,temp_col);
                             temp_row--;
                             temp_col--;
                         }
@@ -456,13 +456,13 @@ __device__
                 temp_row = row-1;
                 temp_col = col+1;
                 while(temp_row >= 1 && temp_col <= n-2){
-                    if(is_a_pawn(temp_row,temp_col)){
-                        if(pawn_owner(row,col) == pawn_owner(temp_row,temp_col))
+                    if(is_a_pawn(tab,temp_row,temp_col)){
+                        if(pawn_owner(tab,row,col) == pawn_owner(tab,temp_row,temp_col))
                             break;
-                        else if(is_a_pawn(temp_row-1,temp_col+1))
+                        else if(is_a_pawn(tab,temp_row-1,temp_col+1))
                             break;
                         else{
-                            kill_tab[temp_row*n+temp_col] = pawn_owner(temp_row,temp_col);
+                            kill_tab[temp_row*n+temp_col] = pawn_owner(tab,temp_row,temp_col);
                             temp_row--;
                             temp_col++;
                         }
@@ -473,13 +473,13 @@ __device__
                 temp_row = row+1;
                 temp_col = col-1;
                 while(temp_row <= n-2 && temp_col >= 1){
-                    if(is_a_pawn(temp_row,temp_col)){
-                        if(pawn_owner(row,col) == pawn_owner(temp_row,temp_col))
+                    if(is_a_pawn(tab,temp_row,temp_col)){
+                        if(pawn_owner(tab,row,col) == pawn_owner(tab,temp_row,temp_col))
                             break;
-                        else if(is_a_pawn(temp_row+1,temp_col-1))
+                        else if(is_a_pawn(tab,temp_row+1,temp_col-1))
                             break;
                         else{
-                            kill_tab[temp_row*n+temp_col] = pawn_owner(temp_row,temp_col);
+                            kill_tab[temp_row*n+temp_col] = pawn_owner(tab,temp_row,temp_col);
                             temp_row++;
                             temp_col--;
                         }
@@ -490,13 +490,13 @@ __device__
                 temp_row = row+1;
                 temp_col = col+1;
                 while(temp_row <= n-2 && temp_col <= n-2){
-                    if(is_a_pawn(temp_row,temp_col)){
-                        if(pawn_owner(row,col) == pawn_owner(temp_row,temp_col))
+                    if(is_a_pawn(tab,temp_row,temp_col)){
+                        if(pawn_owner(tab,row,col) == pawn_owner(tab,temp_row,temp_col))
                             break;
-                        else if(is_a_pawn(temp_row+1,temp_col+1))
+                        else if(is_a_pawn(tab,temp_row+1,temp_col+1))
                             break;
                         else{
-                            kill_tab[temp_row*n+temp_col] = pawn_owner(temp_row,temp_col);
+                            kill_tab[temp_row*n+temp_col] = pawn_owner(tab,temp_row,temp_col);
                             temp_row++;
                             temp_col++;
                         }
@@ -513,8 +513,8 @@ __device__
                 white_dead++;
             else if(kill_tab[row*n+col] == BLACK)
                 black_dead++;
-            if(is_a_pawn(row,col)){
-                if(pawn_owner(row,col) == WHITE)
+            if(is_a_pawn(tab,row,col)){
+                if(pawn_owner(tab,row,col) == WHITE)
                     white_count++;
                 else
                     black_count++;
@@ -538,10 +538,10 @@ __device__
 __device__
     int calculate_board_value(int * Board){
 	    int value;
-    	value=calculate_pawns_value(Board);
+	    value=calculate_pawns_value(Board);
     	value=100*value+calculate_dist_to_be_queen(Board);
     	value=100*value+calculate_future_queen_kills(Board);
-    	value=10*value+(std::rand()%10);
+    	//value=10*value+(rand()%10);
     	return value;
 } 
 
