@@ -38,6 +38,10 @@ void checkers::new_game(){
     tab[9] = tab[32] = tab[36] = WHITE;
     tab[43] = tab[47] = tab[48] = tab[50] = tab[54] = EMPTY;
     tab[38] = tab[47] = BLACK;*/
+    tab[0] = tab[9] = tab[11] = tab[13] = tab[16] = tab[18] = tab[20] = tab[22] = EMPTY;
+    tab[25] = BLACK;
+    tab[18] = WHITE;
+
 }
 
 int checkers::pawn_owner(int x, int y){
@@ -602,7 +606,7 @@ void checkers::play(checkers &ch){
 	std::swap(comp, player);
     int i = WHITE, i2 = BLACK, x, y, x1, y1;
     int xy[4];
-	//std::swap(i, i2);
+std::swap(i, i2);
     while (true){
 	if (i == player){
 	        move(ch, xy, i, false);

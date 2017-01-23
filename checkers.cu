@@ -155,12 +155,15 @@ bool correct_kill(int * tab, int x, int y, int x1, int y1){
 
 __device__
 bool queen_way(int * tab, int x, int y, int x1, int y1){
+	printf("XD");
+	return false;
     int own = pawn_owner(tab, x, y);
     int x_r = x > x1 ? -1 : 1, y_r = y > y1 ? -1 : 1;
     bool next_empty = false;
     x += x_r; y += y_r;
     while (x != x1){
-        if (is_a_pawn(tab, x, y)){
+        if (!(tab[x*8+y] == EMPTY)){
+	    return true;
             if (next_empty)
                 return false;
             next_empty = true;
@@ -169,6 +172,9 @@ bool queen_way(int * tab, int x, int y, int x1, int y1){
         } else {
             next_empty = false;
         }
+//	printf("XD");
+//	printf("%d %d %d\n", x, x1, x_r);
+	return true;
         x += x_r; y += y_r;
     }
     return true;
@@ -233,6 +239,42 @@ __device__
 		}
 	}
 
+
+__device__
+	void kill(int x, int y, int * tab){
+    	    tab[x*8+y] = EMPTY;
+	}
+
+__device__
+	bool has_next_move(int x, int y, int x1, int y1, int * tab, bool kiiil){
+        int kll = 0;
+        int x_r = x > x1 ? -1 : 1, y_r = y > y1 ? -1 : 1;
+            while (x != x1){
+                if (is_a_pawn(tab, x, y)){
+		    if (kiiil)
+                        kill(x, y, tab);
+                    kll++;
+                }
+            x += x_r; y += y_r;
+            }
+        return (kll > 0);
+	}
+
+__device__
+	checkers_point * again_queen(checkers_point * ch, next_kill * first, next_kill * last){
+	return ch;
+	}
+
+__device__
+	next_kill * queen_move_again_again(int * tab, int x1, int y1, int x, int y, next_kill * last){
+		if (is_move_correct(tab, x1, y1, pawn_owner(tab, x1, y1), x, y)
+                        /* && has_next_move(x1, y1, x, y, tab, false)*/) {
+                     //last->next = create_next_move(x1, y1, tab, x, y);
+                     //last = last->next;
+                }
+		return last;
+	}
+
 __device__
 	checkers_point * again(checkers_point * ch, next_kill * first, next_kill * last, int pm){
 	int x = first->t[0], y = first->t[1], x1 = first->t[2], y1 = first->t[3], * tab = first->parent_tab;
@@ -259,12 +301,7 @@ __device__
 }
 
 __device__
-	checkers_point * queen_way_w(checkers_point * ch, int x, int y, int x1, int y1, bool &nxt){
-	return ch;
-}
-
-__device__
-	checkers_point * pawn(checkers_point * ch, int x, int y, int x1, int y1, bool &nxt, checkers_point * chprev, int & rand, bool iskillsomethingnow){
+	checkers_point * pawn(checkers_point * ch, int x, int y, int x1, int y1, bool &nxt, bool iskillsomethingnow, bool queen){
 		int * tab = ch->board;
 		if (ch->parent != NULL)
 			tab = ch->parent->board;
@@ -287,21 +324,17 @@ __device__
 			chld->min_max = !chld->parent->min_max;
 			chld->how_much_children = 0;
 			chld->next = chld->children = NULL;
-			if (chprev != NULL)
-				copy_board(chprev->board, chld);
-			else
-				copy_board(chld->parent->board, chld);
+			copy_board(chld->parent->board, chld);
 			chld->parent->how_much_children++;
-			chld->value = rand++;
                         chld->board[x1*8+y1] = chld->board[x*8+y];
                         chld->board[x*8+y] = EMPTY;
-			if (iskillsomethingnow)
+			if (iskillsomethingnow && queen == false)
                             chld->board[(x+x1)/2*8+(y+y1)/2] = EMPTY;
 			ch = chld;
 			nxt = true;
-			create_queen(ch->board, x1, y1);
+//			create_queen(ch->board, x1, y1);
 //			printf("%d, %d -> %d, %d\n", x, y, x1, y1);
-			if (iskillsomethingnow){
+			if (iskillsomethingnow && queen == false && (create_queen(ch->board, x1, y1) == false)){
 				int pm;
 				if (ch->board[x1*8+y1] == WHITE){
 					pm = -2;
@@ -320,6 +353,31 @@ __device__
 					delete temp;
 				}
 			}
+
+			if (queen && has_next_move(x1, y1, x, y, tab, true)){
+				next_kill * first, * last, * temp;
+                                first = create_next_move(x1, y1, ch->board, x1+1, y1+1);
+				first->next = last = create_next_move(x1, y1, ch->board, x1-1, y1+1);
+                                last->next = create_next_move(x1, y1, ch->board, x1+1, y1-1);
+				last = last->next;
+				last->next = create_next_move(x1, y1, ch->board, x1-1, y1-1);
+				last = last->next;
+				for (int i = 2; i < 8; i++){
+					last = queen_move_again_again(tab, x1, y1, x1+i, y1+i, last);
+					//last = queen_move_again_again(tab, x1, y1, x1+i, y1-i, last);
+					//last = queen_move_again_again(tab, x1, y1, x1-i, y1+i, last);
+					//last = queen_move_again_again(tab, x1, y1, x1-i, y1-i, last);
+				}
+                                while (first != NULL){
+//                                        ch = again_queen(ch, first, last);
+                                        while (last->next != NULL)
+                                                last = last->next;
+                                        temp = first;
+                                        first = first->next;
+                                        delete temp;
+                                }
+			}
+
 		}
 		return ch;
 	}
@@ -340,38 +398,46 @@ __device__
         int ww = 1, bb = 0;
         if (player == BLACK){
 	    ww = 0;
-	    bb = 1;	    
+	    bb = 1;
 	}
 	switch(chb->board[x*8+y]){
 	    case WHITE:
 		if (turn_no % 2 == ww){
 //		printf("WHITE ");
-		ch = pawn(ch, x, y, x-1, y-1, nxt, NULL, rand, false);
-                ch = pawn(ch, x, y, x-1, y+1, nxt, NULL, rand, false);
-		ch = pawn(ch, x, y, x-2, y-2, nxt, NULL, rand, true);
-		ch = pawn(ch, x, y, x-2, y+2, nxt, NULL, rand, true);
+		ch = pawn(ch, x, y, x-1, y-1, nxt, false, false);
+                ch = pawn(ch, x, y, x-1, y+1, nxt, false, false);
+		ch = pawn(ch, x, y, x-2, y-2, nxt, true, false);
+		ch = pawn(ch, x, y, x-2, y+2, nxt, true, false);
 		}
 		break;
 	    case BLACK:
 		if (turn_no % 2 == bb){
 //		printf("BLACK %d %d", x, y);
-		ch = pawn(ch, x, y, x+1, y-1, nxt, NULL, rand, false);
-                ch = pawn(ch, x, y, x+1, y+1, nxt, NULL, rand, false);
-		ch = pawn(ch, x, y, x+2, y-2, nxt, NULL, rand, true);
-                ch = pawn(ch, x, y, x+2, y+2, nxt, NULL, rand, true);
+		ch = pawn(ch, x, y, x+1, y-1, nxt, false, false);
+                ch = pawn(ch, x, y, x+1, y+1, nxt, false, false);
+		ch = pawn(ch, x, y, x+2, y-2, nxt, true, false);
+                ch = pawn(ch, x, y, x+2, y+2, nxt, true, false);
 		}
 		break;
 	    case QUEENB:
 		if (turn_no % 2 == bb){
-		for (int i = 0; i < 8; i++){
-		ch = queen_way_w(ch, x, y, x+i, y+i, nxt);
-		ch = queen_way_w(ch, x, y, x+i, y-i, nxt);
-		ch = queen_way_w(ch, x, y, x-i, y+i, nxt);
-		ch = queen_way_w(ch, x, y, x-i, y-i, nxt);
-		}
+		    for (int i = 0; i < 8; i++){
+			ch = pawn(ch, x, y, x+i, y-i, nxt, false, true);
+			ch = pawn(ch, x, y, x+i, y+i, nxt, false, true);
+			ch = pawn(ch, x, y, x-i, y-i, nxt, false, true);
+			ch = pawn(ch, x, y, x-i, y+i, nxt, false, true);
+		    }
 		}
 		break;
 	    case QUEENW:
+                if (turn_no % 2 == ww){
+                    for (int i = 0; i < 8; i++){
+			ch = pawn(ch, x, y, x+i, y-i, nxt, false, true);
+                        ch = pawn(ch, x, y, x+i, y+i, nxt, false, true);
+                        ch = pawn(ch, x, y, x-i, y-i, nxt, false, true);
+                        ch = pawn(ch, x, y, x-i, y+i, nxt, false, true);
+                    }
+                }
 		break;
 	    default:
 		break;
