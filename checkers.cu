@@ -382,6 +382,7 @@ __device__
 __global__
     void create_tree(int n, checkers_point * ch, int how_deep){
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
+        if(thid==0) printf("create\n");
         int find_me = thid;
         int count_group = n;
             __syncthreads();
@@ -412,7 +413,7 @@ __global__
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
 		int count;
 		if(thid == 0){
-		printf("delete_tree");
+		printf("delete_tree\n");
             checkers_point * child = ch->children;
             checkers_point * temp;
             Queue Q;
@@ -662,6 +663,7 @@ __global__
 		int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
 		int count;
 		if(thid == 0){
+		    printf("alpha_beta\n");
 		    checkers_point * temp;
             Queue Q;
             int count = 0;
