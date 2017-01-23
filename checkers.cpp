@@ -34,11 +34,10 @@ void checkers::new_game(){
             tab[(n*n-1)-(i*n+2*j+(i%2))] = WHITE;
         }
     }
-    tab[9] = EMPTY; tab[22] = EMPTY; tab[31] = BLACK; 
-    tab[43] = tab[45] = tab[48] = EMPTY;
-    tab[32] = tab[34] = tab[36] = WHITE;
-	
-    
+    tab[9] = tab[11] = tab[13] = tab[16] = tab[20] = EMPTY;
+    tab[9] = tab[32] = tab[36] = WHITE;
+    tab[43] = tab[47] = tab[48] = tab[50] = tab[54] = EMPTY;
+    tab[38] = tab[47] = BLACK;
 }
 
 int checkers::pawn_owner(int x, int y){

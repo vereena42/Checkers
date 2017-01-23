@@ -406,8 +406,15 @@ __global__
                     break;
                 find_me = find_me % count_group;
                 ch2 = ch2->children;
-                for (int k = 0; k < group; k++)
+		if (ch2 == NULL)
+			break;
+                for (int k = 0; k < group; k++){
                     ch2 = ch2->next;
+		    if (ch2 == NULL)
+			break;
+		}
+		if (ch2 == NULL)
+			break;
                 __syncthreads();
             }
         }
