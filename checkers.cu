@@ -742,14 +742,17 @@ __global__
     }
 
 __global__
-    void set_root(checkers_point * ch, int * tab, int size){
+    void set_root(checkers_point * ch, int * tab, int size, int player){
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
         if (thid == 0){
 	    ch->value = 1;
 	    ch->children = NULL;
 	    ch->next = NULL;
 	    ch->prev = NULL;
-	    ch->min_max = true;
+	    if(player == WHITE)
+	        ch->min_max = true;
+        else
+            ch->min_max = false;
 	    ch->how_much_children = 0;
 	    for (int i = 0; i < size*size; ++i)
 		ch->board[i] = tab[i]; 

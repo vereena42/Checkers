@@ -882,7 +882,7 @@ int * computer_turn2(int siize, int row_with_pawn, int * tab_with_board){
 	return tab_with_board;
 }
 
-int * computer_turn(int siize, int row_with_pawn, int * tab_with_board){
+int * computer_turn(int siize, int row_with_pawn, int * tab_with_board, int player){
     res = cuMemcpyHtoD(Atab, tab_with_board, size_tab);
     if (res != CUDA_SUCCESS){
         printf("cuMemcpy1\n");
@@ -891,7 +891,7 @@ int * computer_turn(int siize, int row_with_pawn, int * tab_with_board){
     int i = 1;
     void* args[] = {&cuda_n, &Adev, &i};
     void* args2[] = {&Adev, &num_threads, &Vdev};
-    void* args_root[] = {&Adev, &Atab, &siize};
+    void* args_root[] = {&Adev, &Atab, &siize, &player};
     res = cuLaunchKernel(set_root, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args_root, 0);
     if (res != CUDA_SUCCESS){
         printf("cannot run kernel\n");
