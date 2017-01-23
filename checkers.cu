@@ -20,6 +20,12 @@ struct checkers_point{
     int player;
 };
 
+struct next_kill{
+    int t[4];
+    next_kill * next;
+    int * parent_tab;
+};
+
 class Queue{
     private:
         checkers_point * first = NULL;
@@ -112,6 +118,21 @@ int pawn_owner(int * tab, int x, int y){
 }
 
 __device__
+bool create_queen(int * tab, int x, int y){
+    int n = 8;
+    if ((x != 0 && x != n-1) ||
+        (tab[x*n+y] != WHITE && tab[x*n+y] != BLACK) ||
+        (x == 0 && tab[x*n+y] == BLACK) ||
+        (x == n-1 && tab[x*n+y] == WHITE))
+        return false;
+    if (tab[x*n+y] == WHITE)
+        tab[x*n+y] = queenW;
+    else
+        tab[x*n+y] = queenB;
+    return true;
+}
+
+__device__
 bool is_queen(int * tab, int x, int y){
 	int n = 8;
     return (tab[x*n+y] == queenB || tab[x*n+y] == queenW);
@@ -197,11 +218,43 @@ bool is_move_correct(int * tab, int x, int y, int who, int x1, int y1){
 }
 
 __device__
-	void copy_board(checkers_point * ch, checkers_point * ch2){
+	next_kill * create_next_move(int x, int y, int * par_tb, int x1, int y1){
+	next_kill * res = new next_kill;
+        res->t[0] = x; res->t[1] = y;
+        res->t[2] = x1; res->t[3] = y1;
+	res->parent_tab = par_tb;
+	return res;
+}
+
+__device__
+	void copy_board(int * ch, checkers_point * ch2){
 		for (int i = 0; i < 64; i++){
-			ch2->board[i] = ch->board[i];
+			ch2->board[i] = ch[i];
 		}
 	}
+
+__device__
+	checkers_point * again(checkers_point * ch, next_kill * first, next_kill * last, int pm){
+	int x = first->t[0], y = first->t[1], x1 = first->t[2], y1 = first->t[3], * tab = first->parent_tab;
+	if(is_move_correct(tab, x, y, pawn_owner(tab, x, y), x1, y1)){
+		checkers_point * chld;
+		ch->next = new checkers_point;
+                ch->next->parent = ch->parent;
+                ch->next->prev = ch;
+                chld = ch->next;
+		chld->min_max = !chld->parent->min_max;
+		copy_board(tab, chld);
+		chld->parent->how_much_children++;
+		chld->board[x1*8+y1] = chld->board[x*8+y];
+                chld->board[x*8+y] = EMPTY;
+                chld->board[(x+x1)/2*8+(y+y1)/2] = EMPTY;
+                ch = chld;
+                create_queen(chld->board, x1, y1);
+		last = first = create_next_move(x1, y1, ch->board, x1+pm, y1+2);
+                last->next = create_next_move(x1, y1, ch->board, x1+pm, y1-2);
+	}
+	return ch;
+}
 
 __device__
 	checkers_point * pawn(checkers_point * ch, int x, int y, int x1, int y1, bool &nxt, checkers_point * chprev, int & rand, bool iskillsomethingnow){
@@ -212,7 +265,7 @@ __device__
 			tab = ch->parent->board;
 		if (is_move_correct(tab, x, y, pawn_owner(tab, x, y), x1, y1) == true){
 //			printf("correct ");
-			checkers_point * chld, * chld_now;
+			checkers_point * chld;
                         if (!nxt){
 //				printf("chld ");
                                 ch->children = new checkers_point;
@@ -226,33 +279,41 @@ __device__
 				ch->next->prev = ch;
                         	chld = ch->next;
 			}
+			chld->min_max = !chld->parent->min_max;
 			chld->how_much_children = 0;
 			chld->next = chld->children = NULL;
 			if (chprev != NULL)
-				copy_board(chprev, chld);
+				copy_board(chprev->board, chld);
 			else
-				copy_board(chld->parent, chld);
+				copy_board(chld->parent->board, chld);
 			chld->parent->how_much_children++;
 			chld->value = rand++;
                         chld->board[x1*8+y1] = chld->board[x*8+y];
                         chld->board[x*8+y] = EMPTY;
 			if (iskillsomethingnow)
-                        chld->board[(x+x1)/2*8+(y+y1)/2] = EMPTY;
+                            chld->board[(x+x1)/2*8+(y+y1)/2] = EMPTY;
 			ch = chld;
-			chld_now = ch;
 			nxt = true;
+			create_queen(chld->board, x1, y1);
 //			printf("%d, %d -> %d, %d\n", x, y, x1, y1);
-			/*
 			if (iskillsomethingnow){
+				int pm;
 				if (ch->board[x1*8+y1] == WHITE){
-		                	ch = pawn(ch, x1, y1, x1-2, y1-2, nxt, chld_now, rand, true);
-        		        	ch = pawn(ch, x1, y1, x1-2, y1+2, nxt, chld_now, rand, true);
+					pm = -2;
 				} else {
-		        	        ch = pawn(ch, x1, y1, x1+2, y1-2, nxt, chld_now, rand, true);
-  		                	ch = pawn(ch, x1, y1, x1+2, y1+2, nxt, chld_now, rand, true);
+					pm = 2;
+				}
+				next_kill * first, * last, * temp;
+				last = first = create_next_move(x1, y1, ch->board, x1+pm, y1+2);
+				last->next = create_next_move(x1, y1, ch->board, x1+pm, y1-2);
+				last = last->next;
+				while (first != NULL){
+					ch = again(ch, first, last, pm);
+					temp = first;
+					first = first->next;
+					delete temp;
 				}
 			}
-			*/
 		}
 		return ch;
 	}
@@ -336,8 +397,6 @@ __global__
         }
     }
 
-//<<<<<<< HEAD
-//=======
 __global__
     void delete_tree(checkers_point * ch, int thread_num, checkers_point ** V) {
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
@@ -544,7 +603,7 @@ __device__
     	value=100*value+calculate_future_queen_kills(Board);
     	//value=10*value+(rand()%10);
     	return value;
-} 
+}
 
 __device__
 	void minmax(checkers_point * ch) {
@@ -625,8 +684,7 @@ __global__
 		}
 		//zwroc wynik (?)
 	}
-    
-//>>>>>>> d7adecfe7e0407bbe669ef75a06f1ba72ca587af
+
 __device__
     void print_tr(checkers_point * ch){
         if (ch == NULL)
@@ -668,6 +726,7 @@ __global__
 	    ch->children = NULL;
 	    ch->next = NULL;
 	    ch->prev = NULL;
+	    ch->min_max = true;
 	    ch->how_much_children = 0;
 	    for (int i = 0; i < size*size; ++i)
 		ch->board[i] = tab[i]; 
