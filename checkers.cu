@@ -771,8 +771,15 @@ __global__
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
         if (thid == 0){
 	    checkers_point * ch2 = ch->children;
-	    while (ch->alpha != ch2->beta)
+	    if (player == WHITE){
+	    while (ch->alpha != ch2->beta){
 		ch2 = ch2->next;
+	    }
+	    } else {
+	    while (ch->beta != ch2->alpha){
+                ch2 = ch2->next;
+	    }
+	    }
             for (int i = 0; i < 64; ++i)
                 tab[i] = ch2->board[i];
         }

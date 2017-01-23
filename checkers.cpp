@@ -919,7 +919,7 @@ int * computer_turn(int siize, int row_with_pawn, int * tab_with_board, int play
     }
     res = cuLaunchKernel(delete_tree, blocks_per_grid2, 1, 1, threads_per_block2, 1, 1, 0, 0, args2, 0);
     if (res != CUDA_SUCCESS){
-        printf("cannot run kernel\n");
+	printf("cannot run kernel\n");
         exit(1);
     }
     res = cuLaunchKernel(copy_best_result, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args_root, 0);
