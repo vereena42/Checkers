@@ -15,8 +15,8 @@
 #define EMPTY 0
 #define WHITE 1
 #define BLACK 2
-#define queenW 11
-#define queenB 22
+#define QUEENW 11
+#define QUEENB 22
 #define SSPACE " "
 
 

@@ -3,8 +3,8 @@
 #define EMPTY 0
 #define WHITE 1
 #define BLACK 2
-#define queenW 11
-#define queenB 22
+#define QUEENW 11
+#define QUEENB 22
 
 struct checkers_point{
     int board[64];
@@ -22,7 +22,7 @@ struct checkers_point{
 
 struct next_kill{
     int t[4];
-    next_kill * next;
+    next_kill * next = NULL;
     int * parent_tab;
 };
 
@@ -110,9 +110,9 @@ extern "C" {
 
 __device__
 int pawn_owner(int * tab, int x, int y){
-    if (tab[x*8+y] == BLACK || tab[x*8+y] == queenB)
+    if (tab[x*8+y] == BLACK || tab[x*8+y] == QUEENB)
         return BLACK;
-    if (tab[x*8+y] == WHITE || tab[x*8+y] == queenW)
+    if (tab[x*8+y] == WHITE || tab[x*8+y] == QUEENW)
         return WHITE;
     return EMPTY;
 }
@@ -126,16 +126,16 @@ bool create_queen(int * tab, int x, int y){
         (x == n-1 && tab[x*n+y] == WHITE))
         return false;
     if (tab[x*n+y] == WHITE)
-        tab[x*n+y] = queenW;
+        tab[x*n+y] = QUEENW;
     else
-        tab[x*n+y] = queenB;
+        tab[x*n+y] = QUEENB;
     return true;
 }
 
 __device__
 bool is_queen(int * tab, int x, int y){
 	int n = 8;
-    return (tab[x*n+y] == queenB || tab[x*n+y] == queenW);
+    return (tab[x*n+y] == QUEENB || tab[x*n+y] == QUEENW);
 }
 
 __device__
@@ -198,15 +198,15 @@ bool is_move_correct(int * tab, int x, int y, int who, int x1, int y1){
 //	printf("pawn in _");
         return false;
     }
-    if (x < x1 && who == WHITE && tab[x*n+y] != queenW){
+    if (x < x1 && who == WHITE && tab[x*n+y] != QUEENW){
 //	printf("WHITE WRONG WAY");
         return false;
     }
-    if (x > x1 && who == BLACK && tab[x*n+y] != queenB){
+    if (x > x1 && who == BLACK && tab[x*n+y] != QUEENB){
 //	printf("BLACK WRONG WAY");
         return false;
     }
-    if ((tab[x*n+y] == queenW || tab[x*n+y] == queenB) && (!queen_way(tab, x, y, x1, y1))){
+    if ((tab[x*n+y] == QUEENW || tab[x*n+y] == QUEENB) && (!queen_way(tab, x, y, x1, y1))){
 //      printf("queen problem");
 	return false;
     }
@@ -250,16 +250,21 @@ __device__
                 chld->board[(x+x1)/2*8+(y+y1)/2] = EMPTY;
                 ch = chld;
                 create_queen(chld->board, x1, y1);
-		last = first = create_next_move(x1, y1, ch->board, x1+pm, y1+2);
+		last->next = create_next_move(x1, y1, ch->board, x1+pm, y1+2);
+		last = last->next;
                 last->next = create_next_move(x1, y1, ch->board, x1+pm, y1-2);
+		last = last->next;
 	}
 	return ch;
 }
 
 __device__
+	checkers_point * queen_way_w(checkers_point * ch){
+	return ch;
+}
+
+__device__
 	checkers_point * pawn(checkers_point * ch, int x, int y, int x1, int y1, bool &nxt, checkers_point * chprev, int & rand, bool iskillsomethingnow){
-		if (chprev != NULL)
-		return ch;
 		int * tab = ch->board;
 		if (ch->parent != NULL)
 			tab = ch->parent->board;
@@ -304,11 +309,12 @@ __device__
 					pm = 2;
 				}
 				next_kill * first, * last, * temp;
-				last = first = create_next_move(x1, y1, ch->board, x1+pm, y1+2);
-				last->next = create_next_move(x1, y1, ch->board, x1+pm, y1-2);
-				last = last->next;
+				first = create_next_move(x1, y1, ch->board, x1+pm, y1+2);
+				first->next = last = create_next_move(x1, y1, ch->board, x1+pm, y1-2);
 				while (first != NULL){
 					ch = again(ch, first, last, pm);
+					while (last->next != NULL)
+						last = last->next;
 					temp = first;
 					first = first->next;
 					delete temp;
@@ -349,6 +355,10 @@ __device__
 		ch = pawn(ch, x, y, x+2, y-2, nxt, NULL, rand, true);
                 ch = pawn(ch, x, y, x+2, y+2, nxt, NULL, rand, true);
 		}
+		break;
+	    case QUEENB:
+		break;
+	    case QUEENW:
 		break;
 	    default:
 		break;
@@ -448,11 +458,11 @@ __device__
     	for(int i=0;i<n*n;i++){
         	if(tab[i] == WHITE)
             	count+=3;
-        	else if(tab[i] == queenW)
+        	else if(tab[i] == QUEENW)
             	count+=5;
         	else if(tab[i] == BLACK)
             	count-=3;
-        	else if(tab[i] == queenB)
+        	else if(tab[i] == QUEENB)
         	    count-=5;
     	}
     	return (int)(((49.5*count)/57.0) + 49.5);
@@ -495,7 +505,7 @@ __device__
     for(int row=0;row<n;row++){
         for(int col=0;col<n;col++){
             kill_tab[row*n+col] = EMPTY;
-            if(tab[row*n+col] == queenB || tab[row*n+col] == queenW){
+            if(tab[row*n+col] == QUEENB || tab[row*n+col] == QUEENW){
                 temp_row = row-1;
                 temp_col = col-1;
                 while(temp_row >= 1 && temp_col >= 1){

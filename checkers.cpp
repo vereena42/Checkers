@@ -38,9 +38,9 @@ void checkers::new_game(){
 }
 
 int checkers::pawn_owner(int x, int y){
-    if (tab[x*n+y] == BLACK || tab[x*n+y] == queenB)
+    if (tab[x*n+y] == BLACK || tab[x*n+y] == QUEENB)
         return BLACK;
-    if (tab[x*n+y] == WHITE || tab[x*n+y] == queenW)
+    if (tab[x*n+y] == WHITE || tab[x*n+y] == QUEENW)
         return WHITE;
     return EMPTY;
 }
@@ -78,15 +78,15 @@ bool checkers::is_move_correct(int x, int y, int who, int x1, int y1, int kll){
         std::cout << "Target field is not empty\n";
         return false;
     }
-    if (x < x1 && who == WHITE && tab[x*n+y] != queenW){
+    if (x < x1 && who == WHITE && tab[x*n+y] != QUEENW){
         std::cout << "This is not a Queen!\n";
         return false;
     }
-    if (x > x1 && who == BLACK && tab[x*n+y] != queenB){
+    if (x > x1 && who == BLACK && tab[x*n+y] != QUEENB){
         std::cout << "This is not a Queen!\n";
         return false;
     }
-    if ((tab[x*n+y] == queenW || tab[x*n+y] == queenB) && (!queen_way(x, y, x1, y1))){
+    if ((tab[x*n+y] == QUEENW || tab[x*n+y] == QUEENB) && (!queen_way(x, y, x1, y1))){
         std::cout << "Something is wrong :C\n";
         return false;
     }
@@ -161,7 +161,7 @@ bool checkers::has_next_move(int x, int y, int x1, int y1){
 }
 
 bool checkers::is_queen(int x, int y){
-    return (tab[x*n+y] == queenB || tab[x*n+y] == queenW);
+    return (tab[x*n+y] == QUEENB || tab[x*n+y] == QUEENW);
 }
 
 bool checkers::correct_kill(int x, int y, int x1, int y1){
@@ -177,9 +177,9 @@ bool checkers::create_queen(int x, int y){
         (x == n-1 && tab[x*n+y] == WHITE))
         return false;
     if (tab[x*n+y] == WHITE)
-        tab[x*n+y] = queenW;
+        tab[x*n+y] = QUEENW;
     else
-        tab[x*n+y] = queenB;
+        tab[x*n+y] = QUEENB;
     return true;
 }
 
@@ -221,7 +221,7 @@ bool checkers::is_game_blocked(){
                 if(col < n-2 && row < n-2 && pawn_owner(row+1,col+1) == WHITE && !is_a_pawn(row+2,col+2))
                     return false;
             }
-            else if(tab[row*n+col] == queenW || tab[row*n+col] == queenB){
+            else if(tab[row*n+col] == QUEENW || tab[row*n+col] == QUEENB){
                 temp_col = col-1;
                 temp_row = row-1;
                 while(temp_col >= 0 && temp_row >= 0){
@@ -263,9 +263,9 @@ bool checkers::is_game_blocked(){
 bool checkers::is_there_winner(){
     int black_count = 0,white_count = 0;
     for(int i=0;i<n*n;i++){
-        if(tab[i] == WHITE || tab[i] == queenW)
+        if(tab[i] == WHITE || tab[i] == QUEENW)
             white_count++;
-        else if(tab[i] == BLACK || tab[i] == queenB)
+        else if(tab[i] == BLACK || tab[i] == QUEENB)
             black_count++;
     }
     return black_count == 0 || white_count == 0;
@@ -282,9 +282,9 @@ int checkers::check_who_won(){
 int checkers::who_got_more_queens(){
     int black_count = 0,white_count = 0;
     for(int i=0;i<n*n;i++){
-        if(tab[i] == queenW)
+        if(tab[i] == QUEENW)
             white_count++;
-        else if(tab[i] == queenB)
+        else if(tab[i] == QUEENB)
             black_count++;
     }
     if(black_count > white_count)
@@ -299,11 +299,11 @@ int checkers::who_got_more_points(){
     for(int i=0;i<n*n;i++){
         if(tab[i] == WHITE)
             white_count+=3;
-        else if(tab[i] == queenW)
+        else if(tab[i] == QUEENW)
             white_count+=5;
         else if(tab[i] == BLACK)
             black_count+=3;
-        else if(tab[i] == queenB)
+        else if(tab[i] == QUEENB)
             black_count+=5;
     } 
     if(black_count > white_count)
@@ -315,9 +315,9 @@ int checkers::who_got_more_points(){
 
 int checkers::who_got_pawns(){
     for(int i=0;i<n*n;i++){
-        if(tab[i] == queenW || tab[i] == WHITE)
+        if(tab[i] == QUEENW || tab[i] == WHITE)
             return WHITE;
-        else if(tab[i] == queenB || tab[i] == BLACK)
+        else if(tab[i] == QUEENB || tab[i] == BLACK)
             return BLACK;
     }
     return 0;
@@ -337,11 +337,11 @@ int checkers::calculate_pawns_value(){
     for(int i=0;i<n*n;i++){
         if(tab[i] == WHITE)
             count+=3;
-        else if(tab[i] == queenW)
+        else if(tab[i] == QUEENW)
             count+=5;
         else if(tab[i] == BLACK)
             count-=3;
-        else if(tab[i] == queenB)
+        else if(tab[i] == QUEENB)
             count-=5;
     }
     return (int)(((49.5*count)/57.0) + 49.5);
@@ -380,7 +380,7 @@ int checkers::calculate_future_queen_kills(){
     for(int row=0;row<n;row++){
         for(int col=0;col<n;col++){
             kill_tab[row*n+col] = EMPTY;
-            if(tab[row*n+col] == queenB || tab[row*n+col] == queenW){
+            if(tab[row*n+col] == QUEENB || tab[row*n+col] == QUEENW){
                 temp_row = row-1;
                 temp_col = col-1;
                 while(temp_row >= 1 && temp_col >= 1){
@@ -669,10 +669,10 @@ std::ostream& operator<<(std::ostream& os, const checkers& ch){
                     case BLACK:
                         os << outBB << SSPACE;
                         break;
-                    case queenB:
+                    case QUEENB:
                         os << outQbb << SSPACE;
                         break;
-                    case queenW:
+                    case QUEENW:
                         os << outQww << SSPACE;
                         break;
                     default:
@@ -687,10 +687,10 @@ std::ostream& operator<<(std::ostream& os, const checkers& ch){
                     case BLACK:
                         os << outB << SSPACE;
                         break;
-                    case queenB:
+                    case QUEENB:
                         os << outQb << SSPACE;
                         break;
-                    case queenW:
+                    case QUEENW:
                         os << outQw << SSPACE;
                         break;
                     default:
