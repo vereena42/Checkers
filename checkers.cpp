@@ -812,6 +812,75 @@ void cuda_stop(){
     cuCtxDestroy(cuContext);
 }
 
+void create_tree(checkers_point *x, int * tab, int how_deep) {
+	
+}
+
+void set_root(checkers_point *x,int * tab){
+	for(int i=0;i<64;i++) {
+		x->board[i]=tab[i];
+	}
+	x->min_max=true;
+	x->player=WHITE;
+}
+
+void delete_tree(checkers_point *x){
+	checkers_point child = x->children;
+	while(child!=NULL) {
+		delete_tree(child);
+		child = child->next;
+	}
+	delete x;
+}
+
+int alpha_beta(checkers_point * x){
+	if(x->children==NULL) {
+		checkers check;
+		check->tab=x->board;
+		x->value=check.calculate_board_value();
+		return x->value;
+	}
+	else if(x->min_max) {
+		checkers_point * child = x->children;
+		while(child!=NULL) {
+			x->value=min(x->value,alpha_beta(child));
+			child=child->next;
+		}
+		return x->value;
+	}
+	else {
+		checkers_point * child = x->children;
+        while(child!=NULL) {
+            	x->value=max(x->value,alpha_beta(child));
+            	child=child->next;
+        	}
+        	return x->value;	
+		}
+}
+
+void get_best(checkers_point *x, int *tab) {
+	int best_val=x->value;
+	checkers_point * child = x->children;
+	while(child!=NULL) {
+		if(child->value==x->value)
+			break;
+		child=child->next;
+	}
+	for(int i=0;i<64;i++) {
+		tab[i]=child->board[i];
+	}
+}
+
+int * computer_turn2(int siize, int row_with_pawn, int * tab_with_board){
+	checkers_point * x = new checkers_point;
+	set_root(x,tab_with_board);
+	create_tree(x, tab_with_board,4);
+	alpha_beta(x);
+	get_best(x,tab_with_board);
+	delete_tree(x);
+	return tab_with_board;
+}
+
 int * computer_turn(int siize, int row_with_pawn, int * tab_with_board){
     res = cuMemcpyHtoD(Atab, tab_with_board, size_tab);
     if (res != CUDA_SUCCESS){
