@@ -33,11 +33,11 @@ void checkers::new_game(){
             tab[i*n+2*j+(i%2)] = BLACK;
             tab[(n*n-1)-(i*n+2*j+(i%2))] = WHITE;
         }
-    }
+    }/*
     tab[9] = tab[11] = tab[13] = tab[16] = tab[20] = EMPTY;
     tab[9] = tab[32] = tab[36] = WHITE;
     tab[43] = tab[47] = tab[48] = tab[50] = tab[54] = EMPTY;
-    tab[38] = tab[47] = BLACK;
+    tab[38] = tab[47] = BLACK;*/
 }
 
 int checkers::pawn_owner(int x, int y){
@@ -594,11 +594,17 @@ void checkers::move(checkers &ch, int * xy, int player, bool next_move){
 }
 
 void checkers::play(checkers &ch){
+    int comp = BLACK, player = WHITE;
+    std::string c;
+    std::cout << "Wybierz pioneczka, b jeśli biały, c jeśli czarny\n";
+    char input = getchar();
+    if (input == 'c')
+	std::swap(comp, player);
     int i = WHITE, i2 = BLACK, x, y, x1, y1;
     int xy[4];
 	//std::swap(i, i2);
     while (true){
-	if (i == BLACK){
+	if (i == player){
 	        move(ch, xy, i, false);
         	x = xy[0]; y = xy[1]; x1 = xy[2]; y1 = xy[3];
         	int mv = ch.move(x, y, i, x1, y1, 0);
@@ -622,7 +628,7 @@ void checkers::play(checkers &ch){
                 std::swap(i, i2);
 	    }
 	} else {
-		int * new_board = computer_turn(ch.n, ch.row_with_pawn, ch.tab);
+		int * new_board = computer_turn(ch.n, ch.row_with_pawn, ch.tab, comp);
 		for (int k = 0; k < ch.n*ch.n; k++)
 		    ch.tab[k] = new_board[k];
 		std::swap(i, i2);
@@ -889,7 +895,7 @@ int * computer_turn(int siize, int row_with_pawn, int * tab_with_board, int play
         exit(1);
     }
     int i = 1;
-    void* args[] = {&cuda_n, &Adev, &i};
+    void* args[] = {&cuda_n, &Adev, &i, &player};
     void* args2[] = {&Adev, &num_threads, &Vdev};
     void* args_root[] = {&Adev, &Atab, &siize, &player};
     res = cuLaunchKernel(set_root, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args_root, 0);

@@ -325,7 +325,7 @@ __device__
 	}
 
 __device__
-    checkers_point * dismember_child(checkers_point * ch, int x, int y, int turn_no, bool &nxt, int &rand){
+    checkers_point * dismember_child(checkers_point * ch, int x, int y, int turn_no, bool &nxt, int &rand, int player){
 	checkers_point * chb = ch->parent;
 	if (!nxt){
 //		printf(" NO PARENT ");
@@ -337,9 +337,14 @@ __device__
 		printf("%d ", chb->board[i]);
 	printf("\n");
 	*/
+        int ww = 1, bb = 0;
+        if (player == BLACK){
+	    ww = 0;
+	    bb = 1;	    
+	}
 	switch(chb->board[x*8+y]){
 	    case WHITE:
-		if (turn_no % 2 == 1){
+		if (turn_no % 2 == ww){
 //		printf("WHITE ");
 		ch = pawn(ch, x, y, x-1, y-1, nxt, NULL, rand, false);
                 ch = pawn(ch, x, y, x-1, y+1, nxt, NULL, rand, false);
@@ -348,7 +353,7 @@ __device__
 		}
 		break;
 	    case BLACK:
-		if (turn_no % 2 == 0){
+		if (turn_no % 2 == bb){
 //		printf("BLACK %d %d", x, y);
 		ch = pawn(ch, x, y, x+1, y-1, nxt, NULL, rand, false);
                 ch = pawn(ch, x, y, x+1, y+1, nxt, NULL, rand, false);
@@ -357,15 +362,17 @@ __device__
 		}
 		break;
 	    case QUEENB:
+		if (turn_no % 2 == bb){
 		for (int i = 0; i < 8; i++){
 		ch = queen_way_w(ch, x, y, x+i, y+i, nxt);
 		ch = queen_way_w(ch, x, y, x+i, y-i, nxt);
 		ch = queen_way_w(ch, x, y, x-i, y+i, nxt);
 		ch = queen_way_w(ch, x, y, x-i, y-i, nxt);
 		}
-/*		break;
+		}
+		break;
 	    case QUEENW:
-		break;*/
+		break;
 	    default:
 		break;
 	}
@@ -374,19 +381,19 @@ __device__
 
 __device__
 //add global size
-    void ramification(checkers_point * ch2, int thid, int how_deep){
+    void ramification(checkers_point * ch2, int thid, int how_deep, int player){
 	bool nxt = false;
 	int rand = ch2->value;
 	//printf("!%d!\n", how_deep);
 	for (int i = 0; i < 8*8; i++){
 	    if (ch2->board[i] != EMPTY){
-		ch2 = dismember_child(ch2, i/8, i % 8, how_deep, nxt, rand);
+		ch2 = dismember_child(ch2, i/8, i % 8, how_deep, nxt, rand, player);
 	    }
 	}
     }
 
 __global__
-    void create_tree(int n, checkers_point * ch, int how_deep){
+    void create_tree(int n, checkers_point * ch, int how_deep, int player){
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
         int find_me = thid;
         int count_group = n;
@@ -395,7 +402,7 @@ __global__
             checkers_point * ch2 = ch;
             for (int i = 0; i < how_deep; i++){
                 if (find_me == 0 && i + 1 == how_deep){
-                    ramification(ch2, thid, how_deep);
+                    ramification(ch2, thid, how_deep, player);
                 }
                 __syncthreads();
                 if (i + 1 == how_deep)
@@ -732,7 +739,7 @@ __device__
     }
 
 __global__
-    void print_tree(int n, checkers_point * ch, int i){
+    void print_tree(int n, checkers_point * ch, int i, int player){
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
         if (thid == 0){
             printf("____\n");
@@ -760,7 +767,7 @@ __global__
     }
 
 __global__
-    void copy_best_result(checkers_point * ch, int * tab, int size){
+    void copy_best_result(checkers_point * ch, int * tab, int size, int player){
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
         if (thid == 0){
 	    checkers_point * ch2 = ch->children;
