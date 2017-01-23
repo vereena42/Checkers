@@ -34,6 +34,10 @@ void checkers::new_game(){
             tab[(n*n-1)-(i*n+2*j+(i%2))] = WHITE;
         }
     }
+    tab[9] = EMPTY; tab[22] = EMPTY; tab[31] = BLACK; 
+    tab[43] = tab[45] = tab[48] = EMPTY;
+    tab[32] = tab[34] = tab[36] = WHITE;
+	
     
 }
 
@@ -593,6 +597,7 @@ void checkers::move(checkers &ch, int * xy, int player, bool next_move){
 void checkers::play(checkers &ch){
     int i = WHITE, i2 = BLACK, x, y, x1, y1;
     int xy[4];
+	//std::swap(i, i2);
     while (true){
 	if (i == BLACK){
 	        move(ch, xy, i, false);
@@ -709,7 +714,7 @@ CUcontext cuContext;
 CUmodule cuModule;
 CUfunction alpha_beta, create_tree, delete_tree, print_tree, set_root, copy_best_result;
 CUdeviceptr Adev, Atab, Vdev;
-int how_deep = 4;
+int how_deep = 3;
 int max_children = 12 * 2;
 int cuda_n = max_children;
 int blocks_per_grid, threads_per_block, blocks_per_grid2, threads_per_block2, num_threads;
@@ -782,22 +787,19 @@ void cuda_start(){
     }
     res = cuMemAlloc(&Adev, size);
     if (res != CUDA_SUCCESS){
-        printf("cuMemAlloc\n");
+        printf("cuMemAlloc1\n");
         exit(1);
     }
     res = cuMemAlloc(&Vdev, num_threads * sizeof(checkers_point*));
     if (res != CUDA_SUCCESS){
-        printf("cuMemAlloc\n");
+        printf("cuMemAlloc2\n");
         exit(1);
     }
     res = cuMemAlloc(&Atab, size_tab);
     if (res != CUDA_SUCCESS){
-        printf("cuMemAlloc\n");
+        printf("cuMemAlloc3\n");
         exit(1);
     }
-
-
-
 }
 
 void cuda_stop(){
@@ -898,7 +900,9 @@ int * computer_turn(int siize, int row_with_pawn, int * tab_with_board){
     }
     for (i = 1; i < how_deep+1; i++){
         res = cuLaunchKernel(create_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
+	res = cuLaunchKernel(print_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
     }
+    res = cuLaunchKernel(print_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
     if (res != CUDA_SUCCESS){
         printf("cannot run kernel\n");
         exit(1);

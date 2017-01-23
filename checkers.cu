@@ -15,8 +15,8 @@ struct checkers_point{
     checkers_point * parent = NULL;
     bool min_max;
     int value;
-    int alpha;
-    int beta;
+    int alpha = -1000000000;
+    int beta = 1000000000;
     int player;
 };
 
@@ -249,17 +249,17 @@ __device__
                 chld->board[x*8+y] = EMPTY;
                 chld->board[(x+x1)/2*8+(y+y1)/2] = EMPTY;
                 ch = chld;
-                create_queen(chld->board, x1, y1);
+		create_queen(ch->board, x1, y1);
 		last->next = create_next_move(x1, y1, ch->board, x1+pm, y1+2);
 		last = last->next;
-                last->next = create_next_move(x1, y1, ch->board, x1+pm, y1-2);
+		last->next = create_next_move(x1, y1, ch->board, x1+pm, y1-2);
 		last = last->next;
 	}
 	return ch;
 }
 
 __device__
-	checkers_point * queen_way_w(checkers_point * ch){
+	checkers_point * queen_way_w(checkers_point * ch, int x, int y, int x1, int y1, bool &nxt){
 	return ch;
 }
 
@@ -299,7 +299,7 @@ __device__
                             chld->board[(x+x1)/2*8+(y+y1)/2] = EMPTY;
 			ch = chld;
 			nxt = true;
-			create_queen(chld->board, x1, y1);
+			create_queen(ch->board, x1, y1);
 //			printf("%d, %d -> %d, %d\n", x, y, x1, y1);
 			if (iskillsomethingnow){
 				int pm;
@@ -357,9 +357,15 @@ __device__
 		}
 		break;
 	    case QUEENB:
-		break;
+		for (int i = 0; i < 8; i++){
+		ch = queen_way_w(ch, x, y, x+i, y+i, nxt);
+		ch = queen_way_w(ch, x, y, x+i, y-i, nxt);
+		ch = queen_way_w(ch, x, y, x-i, y+i, nxt);
+		ch = queen_way_w(ch, x, y, x-i, y-i, nxt);
+		}
+/*		break;
 	    case QUEENW:
-		break;
+		break;*/
 	    default:
 		break;
 	}
@@ -382,7 +388,6 @@ __device__
 __global__
     void create_tree(int n, checkers_point * ch, int how_deep){
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
-        if(thid==0) printf("create\n");
         int find_me = thid;
         int count_group = n;
             __syncthreads();
@@ -413,7 +418,7 @@ __global__
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
 		int count;
 		if(thid == 0){
-		printf("delete_tree\n");
+		printf("delete_tree");
             checkers_point * child = ch->children;
             checkers_point * temp;
             Queue Q;
@@ -663,7 +668,6 @@ __global__
 		int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
 		int count;
 		if(thid == 0){
-		    printf("alpha_beta\n");
 		    checkers_point * temp;
             Queue Q;
             int count = 0;
