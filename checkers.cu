@@ -489,7 +489,7 @@ __global__
 __global__
     void delete_tree(checkers_point * ch, int thread_num, checkers_point ** V) {
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
-		int count;
+		__shared__ int count;
 		if(thid == 0){
 		printf("delete_tree");
             checkers_point * child = ch->children;
@@ -739,7 +739,7 @@ __global__
     void alpha_beta(checkers_point * ch, int thread_num, checkers_point ** V) {
         //rozdziel i wrzuc do V
 		int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
-		int count;
+		__shared__ int count;
 		if(thid == 0){
 		    checkers_point * temp;
             Queue Q;

@@ -6,6 +6,12 @@
 
 
 #include "checkers.hpp"
+#include "objective_cuda.h"
+
+#define STR(k) XSTR(k)
+#define XSTR(k) #k
+
+#define cu_auto_assert(k) CuError::cu_assert(k, __FILE__ ":" STR(__LINE__))
 
 checkers::checkers(){
     this->n = default_n;
@@ -204,7 +210,7 @@ bool checkers::create_queen(int x, int y, int * t){
 }
 
 bool checkers::is_end_of_game(){
-    return is_there_winner() || 
+    return is_there_winner() ||
             is_no_pawns() ||
             is_game_blocked();
 }
@@ -253,7 +259,7 @@ bool checkers::is_game_blocked(){
                 temp_col = col+1;
                 temp_row = row-1;
                 while(temp_col <= n-1 && temp_row >= 0){
-                    if(!is_a_pawn(temp_row,temp_col, tab) && queen_way(row,col,temp_row,temp_col,tab))    
+                    if(!is_a_pawn(temp_row,temp_col, tab) && queen_way(row,col,temp_row,temp_col,tab))
                         return false;
                     temp_col++;
                     temp_row--;
@@ -261,7 +267,7 @@ bool checkers::is_game_blocked(){
                 temp_col = col-1;
                 temp_row = row+1;
                 while(temp_col >= 0 && temp_row <= n-1){
-                    if(!is_a_pawn(temp_row,temp_col, tab) && queen_way(row,col,temp_row,temp_col,tab))    
+                    if(!is_a_pawn(temp_row,temp_col, tab) && queen_way(row,col,temp_row,temp_col,tab))
                         return false;
                     temp_col--;
                     temp_row++;
@@ -325,7 +331,7 @@ int checkers::who_got_more_points(){
             black_count+=3;
         else if(tab[i] == QUEENB)
             black_count+=5;
-    } 
+    }
     if(black_count > white_count)
         return BLACK;
     if(white_count > black_count)
@@ -742,7 +748,6 @@ std::ostream& operator<<(std::ostream& os, const checkers& ch){
                     default:
                         os << outEe << SSPACE;
                 }
-                
             } else {
                 switch (ch.tab[i*ch.n + j]){
                     case WHITE:
@@ -768,7 +773,6 @@ std::ostream& operator<<(std::ostream& os, const checkers& ch){
 }
 
 CUdevice cuDevice;
-CUresult res;
 CUcontext cuContext;
 CUmodule cuModule;
 CUfunction alpha_beta, create_tree, delete_tree, print_tree, set_root, copy_best_result;
@@ -781,54 +785,18 @@ size_t size, size_tab;
 checkers_point * a;
 
 void cuda_start(){
-    cuInit(0);
-    res = cuDeviceGet(&cuDevice, 0);
-    if (res != CUDA_SUCCESS){
-        printf("cannot acquire device 0\n");
-        exit(1);
-    }
-    res = cuCtxCreate(&cuContext, 0, cuDevice);
-    if (res != CUDA_SUCCESS){
-        printf("cannot create context\n");
-        exit(1);
-    }
+    cu_auto_assert(cuInit(0));
+    cu_auto_assert(cuDeviceGet(&cuDevice, 0));
+    cu_auto_assert(cuCtxCreate(&cuContext, 0, cuDevice));
     cuModule = (CUmodule)0;
-    res = cuModuleLoad(&cuModule, "checkers.ptx");
-    if (res != CUDA_SUCCESS) {
-        printf("cannot load module: %d\n", res);
-        exit(1);
-    }
-    res = cuModuleGetFunction(&alpha_beta, cuModule, "alpha_beta");
-    if (res != CUDA_SUCCESS){
-        printf("cannot acquire kernel handle\n");
-        exit(1);
-        }
-    res = cuModuleGetFunction(&create_tree, cuModule, "create_tree");
-    if (res != CUDA_SUCCESS){
-        printf("cannot acquire kernel handle\n");
-        exit(1);
-    }
-    res = cuModuleGetFunction(&delete_tree, cuModule, "delete_tree");
-    if (res != CUDA_SUCCESS){
-        printf("cannot acquire kernel handle\n");
-        exit(1);
-        }
-    res = cuModuleGetFunction(&print_tree, cuModule, "print_tree"); 
-    if (res != CUDA_SUCCESS){
-        printf("cannot acquire kernel handle\n");
-        exit(1);
-    }
-    res = cuModuleGetFunction(&set_root, cuModule, "set_root");
-    if (res != CUDA_SUCCESS){
-        printf("cannot acquire kernel handle\n");
-        exit(1);
-    }
-    res = cuModuleGetFunction(&copy_best_result, cuModule, "copy_best_result");
-    if (res != CUDA_SUCCESS){
-        printf("cannot acquire kernel handle\n");
-        exit(1);
-    }
-    for (int i = 0; i < 4; i++){
+    cu_auto_assert(cuModuleLoad(&cuModule, "checkers.ptx"));
+    cu_auto_assert(cuModuleGetFunction(&alpha_beta, cuModule, "alpha_beta"));
+    cu_auto_assert(cuModuleGetFunction(&create_tree, cuModule, "create_tree"));
+    cu_auto_assert(cuModuleGetFunction(&delete_tree, cuModule, "delete_tree"));
+    cu_auto_assert(cuModuleGetFunction(&print_tree, cuModule, "print_tree"));
+    cu_auto_assert(cuModuleGetFunction(&set_root, cuModule, "set_root"));
+    cu_auto_assert(cuModuleGetFunction(&copy_best_result, cuModule, "copy_best_result"));
+    for (int i = 0; i < how_deep; i++){
         cuda_n *= max_children;
     }
     blocks_per_grid = (cuda_n+1023)/1024;
@@ -839,34 +807,14 @@ void cuda_start(){
     size = sizeof(checkers_point)*cuda_n;
     size_tab = sizeof(int)*64;
     a = (checkers_point*) malloc(size);
-    res = cuMemHostRegister(a, size, 0);
-    if (res != CUDA_SUCCESS){
-        printf("cuMemHostRegister\n");
-        exit(1);
-    }
-    res = cuMemAlloc(&Adev, size);
-    if (res != CUDA_SUCCESS){
-        printf("cuMemAlloc1\n");
-        exit(1);
-    }
-    res = cuMemAlloc(&Vdev, num_threads * sizeof(checkers_point*));
-    if (res != CUDA_SUCCESS){
-        printf("cuMemAlloc2\n");
-        exit(1);
-    }
-    res = cuMemAlloc(&Atab, size_tab);
-    if (res != CUDA_SUCCESS){
-        printf("cuMemAlloc3\n");
-        exit(1);
-    }
+    cu_auto_assert(cuMemHostRegister(a, size, 0));
+    cu_auto_assert(cuMemAlloc(&Adev, size));
+    cu_auto_assert(cuMemAlloc(&Vdev, num_threads * sizeof(checkers_point*)));
+    cu_auto_assert(cuMemAlloc(&Atab, size_tab));
 }
 
 void cuda_stop(){
-    res = cuMemHostUnregister(a);
-    if (res != CUDA_SUCCESS){
-        printf("cuMemHostUnregister!\n");
-        exit(1);
-    }
+    cu_auto_assert(cuMemHostUnregister(a));
     cuMemFree(Adev);
     cuMemFree(Atab);
     cuMemFree(Vdev);
@@ -1050,7 +998,7 @@ int alpha_beta_linear(checkers_point * x){
             	x->value=std::max(x->value,alpha_beta_linear(child));
             	child=child->next;
         	}
-        	return x->value;	
+        	return x->value;
 		}
 }
 
@@ -1079,48 +1027,26 @@ int * computer_turn2(int siize, int row_with_pawn, int * tab_with_board, int pla
 
 int * computer_turn(int siize, int row_with_pawn, int * tab_with_board, int player, int hd){
     how_deep = hd;
-    res = cuMemcpyHtoD(Atab, tab_with_board, size_tab);
-    if (res != CUDA_SUCCESS){
-        printf("cuMemcpy1\n");
-        exit(1);
-    }
+    cu_auto_assert(cuMemcpyHtoD(Atab, tab_with_board, size_tab));
     int i = 1;
     void* args[] = {&cuda_n, &Adev, &i, &player};
     void* args2[] = {&Adev, &num_threads, &Vdev};
     void* args_root[] = {&Adev, &Atab, &siize, &player};
-    res = cuLaunchKernel(set_root, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args_root, 0);
-    if (res != CUDA_SUCCESS){
-        printf("cannot run kernel\n");
-        exit(1);
-    }
+    cu_auto_assert(cuLaunchKernel(set_root, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args_root, 0));
     for (i = 1; i < how_deep+1; i++){
-        res = cuLaunchKernel(create_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
-	res = cuLaunchKernel(print_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
+        cu_auto_assert(cuLaunchKernel(create_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0));
+				cu_auto_assert(cuCtxSynchronize());
+				cu_auto_assert(cuLaunchKernel(print_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0));
+				cu_auto_assert(cuCtxSynchronize());
     }
-    res = cuLaunchKernel(print_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0);
-    if (res != CUDA_SUCCESS){
-        printf("cannot run kernel\n");
-        exit(1);
-    }
-    res = cuLaunchKernel(alpha_beta, blocks_per_grid2, 1, 1, threads_per_block2, 1, 1, 0, 0, args2, 0);
-    if (res != CUDA_SUCCESS){
-        printf("cannot run kernel\n");
-        exit(1);
-    }
-    res = cuLaunchKernel(delete_tree, blocks_per_grid2, 1, 1, threads_per_block2, 1, 1, 0, 0, args2, 0);
-    if (res != CUDA_SUCCESS){
-	printf("cannot run kernel\n");
-        exit(1);
-    }
-    res = cuLaunchKernel(copy_best_result, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args_root, 0);
-    if (res != CUDA_SUCCESS){
-        printf("cannot run kernel\n");
-        exit(1);
-    }
-    res = cuMemcpyDtoH(tab_with_board, Atab, size_tab);
-    if (res != CUDA_SUCCESS){
-        printf("cuMemcpy!\n");
-        exit(1);
-    }
+    cu_auto_assert(cuLaunchKernel(print_tree, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args, 0));
+		cu_auto_assert(cuCtxSynchronize());
+    cu_auto_assert(cuLaunchKernel(alpha_beta, blocks_per_grid2, 1, 1, threads_per_block2, 1, 1, 0, 0, args2, 0));
+		cu_auto_assert(cuCtxSynchronize());
+    // cu_auto_assert(cuLaunchKernel(delete_tree, blocks_per_grid2, 1, 1, threads_per_block2, 1, 1, 0, 0, args2, 0));
+		cu_auto_assert(cuCtxSynchronize());
+    cu_auto_assert(cuLaunchKernel(copy_best_result, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args_root, 0));
+		cu_auto_assert(cuCtxSynchronize());
+    cu_auto_assert(cuMemcpyDtoH(tab_with_board, Atab, size_tab));
     return tab_with_board;
 }
