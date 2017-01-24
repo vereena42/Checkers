@@ -64,6 +64,12 @@
 #define z6 "6"
 #define z7 "7"
 */
+
+int * computer_turn(int siize, int row_with_pawn, int * tab_with_board, int player, int hd);
+int * computer_turn2(int siize, int row_with_pawn, int * tab_with_board, int player, int hd);
+void cuda_start();
+void cuda_stop();
+
 class checkers{
 public:
     int n;
@@ -76,8 +82,8 @@ public:
     void new_game();
     int move(int x, int y, int who, int x1, int y1, int kll);
     static int pawn_owner(int x, int y, int * t);
-    static bool is_move_correct(int x, int y, int who, int x1, int y1, int kll, int * t);
-    static bool has_next_move(int x, int y, int x1, int y1, int * t);
+    static bool is_move_correct(int x, int y, int who, int x1, int y1, int kll, int * t, bool kllsm);
+    static bool has_next_move(int x, int y, int x1, int y1, int * t, bool kill_in_f);
     static bool is_a_pawn(int x, int y, int * t);
     static bool correct_kill(int x, int y, int x1, int y1, int * t);
     static void kill(int x, int y, int * t);
@@ -100,6 +106,7 @@ public:
     static void play(checkers &ch);
     static void move(checkers &ch, int * tab, int player, bool next_move);
     static void move_switch(checkers &ch, int player);
+    static void play_computer_vs_computer(checkers &ch);
 };
 std::ostream& operator<<(std::ostream& os, const checkers& ch);
 
@@ -117,8 +124,5 @@ struct checkers_point{
     int player;
 };
 
-int * computer_turn(int siize, int row_with_pawn, int * tab_with_board, int player);
-void cuda_start();
-void cuda_stop();
 
 #endif /* checkers_hpp */

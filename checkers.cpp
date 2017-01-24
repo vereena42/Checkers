@@ -59,9 +59,9 @@ int checkers::pawn_owner(int x, int y, int * t){
 }
 
 int checkers::move(int x, int y, int who, int x1, int y1, int kll){
-    if (!is_move_correct(x, y, who, x1, y1, kll, tab))
+    if (!is_move_correct(x, y, who, x1, y1, kll, tab, true))
         return 0;
-    if (has_next_move(x, y, x1, y1, tab)){
+    if (has_next_move(x, y, x1, y1, tab, true)){
         create_queen(x1, y1, tab);
         return 2;
     }
@@ -69,7 +69,7 @@ int checkers::move(int x, int y, int who, int x1, int y1, int kll){
     return 1;
 }
 
-bool checkers::is_move_correct(int x, int y, int who, int x1, int y1, int kll, int * t){
+bool checkers::is_move_correct(int x, int y, int who, int x1, int y1, int kll, int * t, bool kill_in_f){
     int n = 8;
     if (x < 0 || x >= n || x1 < 0 || x1 >= n || y < 0 || y >= n || y1 < 0 || y1 >= n ){
         std::cout << "WRONG!\n";
@@ -155,7 +155,7 @@ void checkers::kill(int x, int y, int * t){
     t[x*n+y] = EMPTY;
 }
 
-bool checkers::has_next_move(int x, int y, int x1, int y1, int * t){
+bool checkers::has_next_move(int x, int y, int x1, int y1, int * t, bool kill_in_f){
     int n = 8;
     t[x1*n+y1] = t[x*n+y];
     kill(x, y, t);
@@ -164,7 +164,8 @@ bool checkers::has_next_move(int x, int y, int x1, int y1, int * t){
         int x_r = x > x1 ? -1 : 1, y_r = y > y1 ? -1 : 1;
         while (x != x1){
             if (is_a_pawn(x, y, t)){
-                kill(x, y, t);
+                if (kill_in_f)
+                    kill(x, y, t);
                 kll++;
             }
             x += x_r; y += y_r;
@@ -609,17 +610,51 @@ void checkers::move(checkers &ch, int * xy, int player, bool next_move){
     } while (next_move == false && xy[2] == -1);
 }
 
+void checkers::play_computer_vs_computer(checkers &ch){
+    int hd1, hd2;
+    std::cout << "Wprowadź dwie liczby oznaczające zagłębienie jednego i drugiego gracza:\n";
+    std::cin >> hd1 >> hd2;
+    int i = WHITE, i2 = BLACK;
+    while (true){
+            int * new_board = computer_turn(ch.n, ch.row_with_pawn, ch.tab, i, hd1);
+            for (int k = 0; k < ch.n*ch.n; k++)
+                ch.tab[k] = new_board[k];
+            std::swap(i, i2);
+            std::swap(hd1, hd2);
+        if (ch.is_end_of_game())
+            break;
+    }
+    std::cout << "\n" << ch << "\nPlayer " << ch.check_who_won() << " won!\n";
+}
+
 void checkers::play(checkers &ch){
-    int comp = BLACK, player = WHITE;
-    std::string c;
-    std::cout << "Wybierz pioneczka, b jeśli biały, c jeśli czarny\n";
-    char input = getchar();
-    if (input == 'c')
-	std::swap(comp, player);
+    int comp = WHITE, player = BLACK;
+    bool plvspl = false;
+    bool cudda = false;
+    std::string input;
+    std::cout << "Wybierz tryb gry: \n1 -> Player vs Player\n2 -> Player vs Computer\n3 -> Computer vs Computer\n";
+    std::cin >> input;
+    if (input == "3"){
+        play_computer_vs_computer(ch);
+        return;
+    } else if (input == "1"){
+        plvspl = true;
+    } else {
+        std::cout << "Wybierz 1 jeśli ruch gracza komputerowego ma być liczony na cudzie, 2 jeśli nie.\n";
+        std::cin >> input;
+        if (input == "1"){
+            cudda = true;
+            std::cout << "Wybierz pionki, b jeśli biały, c jeśli czarny\n";
+            std::cin >> input;
+            if (input == "b")
+                std::swap(comp, player);
+        }
+    }
+    
     int i = WHITE, i2 = BLACK, x, y, x1, y1;
     int xy[4];
     while (true){
-	if (i == player || true){
+	if (i == player || plvspl){
 	        move(ch, xy, i, false);
         	x = xy[0]; y = xy[1]; x1 = xy[2]; y1 = xy[3];
         	int mv = ch.move(x, y, i, x1, y1, 0);
@@ -643,7 +678,11 @@ void checkers::play(checkers &ch){
                 std::swap(i, i2);
 	    }
 	} else {
-		int * new_board = computer_turn(ch.n, ch.row_with_pawn, ch.tab, comp);
+        int * new_board;
+        if (cudda)
+            new_board = computer_turn(ch.n, ch.row_with_pawn, ch.tab, comp, 3);
+        else
+            new_board = computer_turn2(ch.n, ch.row_with_pawn, ch.tab, comp, 3);
 		for (int k = 0; k < ch.n*ch.n; k++)
 		    ch.tab[k] = new_board[k];
 		std::swap(i, i2);
@@ -854,10 +893,10 @@ void copy_board(int * ch, checkers_point * ch2){
         ch2->board[i] = ch[i];
     }
 }
-/*
+
 checkers_point * again(checkers_point * ch, next_kill * first, next_kill * last, int pm){
     int x = first->t[0], y = first->t[1], x1 = first->t[2], y1 = first->t[3], * tab = first->parent_tab;
-    if(checkers::is_move_correct(x, y, checkers::pawn_owner(x, y, tab), x1, y1, tab)){
+    if(checkers::is_move_correct(x, y, checkers::pawn_owner(x, y, tab), x1, y1, false, tab, false)){
         checkers_point * chld;
         ch->next = new checkers_point;
         ch->next->parent = ch->parent;
@@ -883,7 +922,7 @@ checkers_point * create_node(checkers_point * ch, int x, int y, int x1, int y1, 
     int * tab = ch->board;
     if (ch->parent != NULL)
         tab = ch->parent->board;
-    if (checkers::is_move_correct(x, y, checkers::pawn_owner(x, y, tab), x1, y1, tab)){
+    if (checkers::is_move_correct(x, y, checkers::pawn_owner(x, y, tab), x1, y1, false, tab, false)){
         checkers_point * chld;
         if (!nxt){
             ch->children = new checkers_point;
@@ -929,13 +968,13 @@ checkers_point * create_node(checkers_point * ch, int x, int y, int x1, int y1, 
     }
     return ch;
 }
-*/
+
 void create_tree_linear(checkers_point *x, int how_deep, int now) {
     if (how_deep == now)
         return;
     bool nxt = false;
-    //for (int i = 0; i < 64; ++i){
- /*       switch (x->board[i]) {
+    for (int i = 0; i < 64; ++i){
+        switch (x->board[i]) {
             case WHITE:
                 if (now % 2 == 1){
                     x = create_node(x, i/8, i%8, i/8-1, i%8-1, nxt, false, false);
@@ -966,7 +1005,6 @@ void create_tree_linear(checkers_point *x, int how_deep, int now) {
                 break;
         }
     }
-   */ 
     x = x->children;
     while (x != NULL){
         create_tree_linear(x, how_deep, now+1);
@@ -1029,17 +1067,18 @@ void get_best(checkers_point *x, int *tab) {
 	}
 }
 
-int * computer_turn2(int siize, int row_with_pawn, int * tab_with_board){
+int * computer_turn2(int siize, int row_with_pawn, int * tab_with_board, int player, int hd){
 	checkers_point * x = new checkers_point;
 	set_root_linear(x,tab_with_board);
-	create_tree_linear(x, 4, 1);
+	create_tree_linear(x, hd, 1);
 	alpha_beta_linear(x);
 	get_best(x,tab_with_board);
 	delete_tree_linear(x);
 	return tab_with_board;
 }
 
-int * computer_turn(int siize, int row_with_pawn, int * tab_with_board, int player){
+int * computer_turn(int siize, int row_with_pawn, int * tab_with_board, int player, int hd){
+    how_deep = hd;
     res = cuMemcpyHtoD(Atab, tab_with_board, size_tab);
     if (res != CUDA_SUCCESS){
         printf("cuMemcpy1\n");
