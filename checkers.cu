@@ -152,10 +152,8 @@ bool correct_kill(int * tab, int x, int y, int x1, int y1){
     return false;
 }
 
-
 __device__
 bool queen_way(int * tab, int x, int y, int x1, int y1){
-	printf("XD");
 	return false;
     int own = pawn_owner(tab, x, y);
     int x_r = x > x1 ? -1 : 1, y_r = y > y1 ? -1 : 1;
@@ -163,7 +161,6 @@ bool queen_way(int * tab, int x, int y, int x1, int y1){
     x += x_r; y += y_r;
     while (x != x1){
         if (!(tab[x*8+y] == EMPTY)){
-	    return true;
             if (next_empty)
                 return false;
             next_empty = true;
@@ -172,9 +169,6 @@ bool queen_way(int * tab, int x, int y, int x1, int y1){
         } else {
             next_empty = false;
         }
-//	printf("XD");
-//	printf("%d %d %d\n", x, x1, x_r);
-	return true;
         x += x_r; y += y_r;
     }
     return true;
@@ -213,7 +207,7 @@ bool is_move_correct(int * tab, int x, int y, int who, int x1, int y1){
         return false;
     }
     if ((tab[x*n+y] == QUEENW || tab[x*n+y] == QUEENB) && (!queen_way(tab, x, y, x1, y1))){
-//      printf("queen problem");
+//        printf("queen problem");
 	return false;
     }
     if (!is_queen(tab, x, y) && std::abs((x-x1)) > 1 && !correct_kill(tab, x, y, (x1+x)/2, (y1+y)/2)){
@@ -353,9 +347,9 @@ __device__
 					delete temp;
 				}
 			}
-
+		
 			if (queen && has_next_move(x1, y1, x, y, tab, true)){
-				next_kill * first, * last, * temp;
+		/*		next_kill * first, * last, * temp;
                                 first = create_next_move(x1, y1, ch->board, x1+1, y1+1);
 				first->next = last = create_next_move(x1, y1, ch->board, x1-1, y1+1);
                                 last->next = create_next_move(x1, y1, ch->board, x1+1, y1-1);
@@ -363,7 +357,7 @@ __device__
 				last->next = create_next_move(x1, y1, ch->board, x1-1, y1-1);
 				last = last->next;
 				for (int i = 2; i < 8; i++){
-					last = queen_move_again_again(tab, x1, y1, x1+i, y1+i, last);
+//					last = queen_move_again_again(tab, x1, y1, x1+i, y1+i, last);
 					//last = queen_move_again_again(tab, x1, y1, x1+i, y1-i, last);
 					//last = queen_move_again_again(tab, x1, y1, x1-i, y1+i, last);
 					//last = queen_move_again_again(tab, x1, y1, x1-i, y1-i, last);
@@ -376,14 +370,14 @@ __device__
                                         first = first->next;
                                         delete temp;
                                 }
-			}
+		*/	}
 
 		}
 		return ch;
 	}
 
 __device__
-    checkers_point * dismember_child(checkers_point * ch, int x, int y, int turn_no, bool &nxt, int &rand, int player){
+    checkers_point * dismember_child(checkers_point * ch, int x, int y, int turn_no, bool &nxt, int player){
 	checkers_point * chb = ch->parent;
 	if (!nxt){
 //		printf(" NO PARENT ");
@@ -449,11 +443,10 @@ __device__
 //add global size
     void ramification(checkers_point * ch2, int thid, int how_deep, int player){
 	bool nxt = false;
-	int rand = ch2->value;
 	//printf("!%d!\n", how_deep);
 	for (int i = 0; i < 8*8; i++){
 	    if (ch2->board[i] != EMPTY){
-		ch2 = dismember_child(ch2, i/8, i % 8, how_deep, nxt, rand, player);
+		ch2 = dismember_child(ch2, i/8, i % 8, how_deep, nxt, player);
 	    }
 	}
     }
@@ -837,13 +830,25 @@ __global__
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
         if (thid == 0){
 	    checkers_point * ch2 = ch->children;
+	    if (ch2 == NULL){
+		printf("No result -> root->chidlren = NULL\n");
+		return;
+            }
 	    if (player == WHITE){
 	    while (ch->alpha != ch2->beta){
 		ch2 = ch2->next;
+		if (ch2 == NULL){
+                printf("No result -> next = null\n");
+                return;
+            }
 	    }
 	    } else {
 	    while (ch->beta != ch2->alpha){
                 ch2 = ch2->next;
+		if (ch2 == NULL){
+                printf("No result -> next = null\n");
+                return;
+            }
 	    }
 	    }
             for (int i = 0; i < 64; ++i)

@@ -38,10 +38,15 @@ void checkers::new_game(){
     tab[9] = tab[32] = tab[36] = WHITE;
     tab[43] = tab[47] = tab[48] = tab[50] = tab[54] = EMPTY;
     tab[38] = tab[47] = BLACK;*/
+   
     tab[0] = tab[9] = tab[11] = tab[13] = tab[16] = tab[18] = tab[20] = tab[22] = EMPTY;
     tab[25] = BLACK;
     tab[18] = WHITE;
-
+   /*
+    for (int i = 0; i < 64; i++)
+	tab[i] = EMPTY;
+    tab[9] = tab[20]=  BLACK;
+    tab[18] = QUEENW*/;
 }
 
 int checkers::pawn_owner(int x, int y){
@@ -606,7 +611,6 @@ void checkers::play(checkers &ch){
 	std::swap(comp, player);
     int i = WHITE, i2 = BLACK, x, y, x1, y1;
     int xy[4];
-std::swap(i, i2);
     while (true){
 	if (i == player){
 	        move(ch, xy, i, false);
@@ -640,7 +644,7 @@ std::swap(i, i2);
         if (ch.is_end_of_game())
             break;
     }
-    std::cout << "Player " << ch.check_who_won() << " won!\n";
+    std::cout << "\n" << ch << "\nPlayer " << ch.check_who_won() << " won!\n";
 }
 
 std::string symobol(int i){
