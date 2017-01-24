@@ -49,26 +49,28 @@ void checkers::new_game(){
     tab[18] = QUEENW*/;
 }
 
-int checkers::pawn_owner(int x, int y){
-    if (tab[x*n+y] == BLACK || tab[x*n+y] == QUEENB)
+int checkers::pawn_owner(int x, int y, int * t){
+    int n = 8;
+    if (t[x*n+y] == BLACK || t[x*n+y] == QUEENB)
         return BLACK;
-    if (tab[x*n+y] == WHITE || tab[x*n+y] == QUEENW)
+    if (t[x*n+y] == WHITE || t[x*n+y] == QUEENW)
         return WHITE;
     return EMPTY;
 }
 
 int checkers::move(int x, int y, int who, int x1, int y1, int kll){
-    if (!is_move_correct(x, y, who, x1, y1, kll))
+    if (!is_move_correct(x, y, who, x1, y1, kll, tab))
         return 0;
-    if (has_next_move(x, y, x1, y1)){
-        create_queen(x1, y1);
+    if (has_next_move(x, y, x1, y1, tab)){
+        create_queen(x1, y1, tab);
         return 2;
     }
-    create_queen(x1, y1);
+    create_queen(x1, y1, tab);
     return 1;
 }
 
-bool checkers::is_move_correct(int x, int y, int who, int x1, int y1, int kll, int * tab = NULL){
+bool checkers::is_move_correct(int x, int y, int who, int x1, int y1, int kll, int * t){
+    int n = 8;
     if (x < 0 || x >= n || x1 < 0 || x1 >= n || y < 0 || y >= n || y1 < 0 || y1 >= n ){
         std::cout << "WRONG!\n";
         return false;
@@ -77,7 +79,7 @@ bool checkers::is_move_correct(int x, int y, int who, int x1, int y1, int kll, i
         std::cout << "WRONG!\n";
         return false;
     }
-    int pwn_wnr = pawn_owner(x, y);
+    int pwn_wnr = pawn_owner(x, y, t);
     if (pwn_wnr == EMPTY){
         std::cout << "There's no pawn!\n";
         return false;
@@ -86,34 +88,34 @@ bool checkers::is_move_correct(int x, int y, int who, int x1, int y1, int kll, i
         std::cout << "This is not your pawn!\n";
         return false;
     }
-    if (is_a_pawn(x1, y1)){
+    if (is_a_pawn(x1, y1, t)){
         std::cout << "Target field is not empty\n";
         return false;
     }
-    if (x < x1 && who == WHITE && tab[x*n+y] != QUEENW){
+    if (x < x1 && who == WHITE && t[x*n+y] != QUEENW){
         std::cout << "This is not a Queen!\n";
         return false;
     }
-    if (x > x1 && who == BLACK && tab[x*n+y] != QUEENB){
+    if (x > x1 && who == BLACK && t[x*n+y] != QUEENB){
         std::cout << "This is not a Queen!\n";
         return false;
     }
-    if ((tab[x*n+y] == QUEENW || tab[x*n+y] == QUEENB) && (!queen_way(x, y, x1, y1))){
+    if ((t[x*n+y] == QUEENW || t[x*n+y] == QUEENB) && (!queen_way(x, y, x1, y1, t))){
         std::cout << "Something is wrong :C\n";
         return false;
     }
-    if (!is_queen(x, y) && std::abs((x-x1)) > 1 && !correct_kill(x, y, (x1+x)/2, (y1+y)/2)){
+    if (!is_queen(x, y, t) && std::abs((x-x1)) > 1 && !correct_kill(x, y, (x1+x)/2, (y1+y)/2, t)){
         std::cout << "NOPE!\n";
         return false;
     }
     if (kll){
         kll = 0;
         int x_r = x > x1 ? -1 : 1, y_r = y > y1 ? -1 : 1;
-        int own = pawn_owner(x, y);
+        int own = pawn_owner(x, y, t);
         x += x_r; y += y_r;
         while (x != x1){
-            std::cout << pawn_owner(x, y) << " " << x << " " << y << "\n";
-            if (is_a_pawn(x, y) && pawn_owner(x, y) != own){
+            std::cout << pawn_owner(x, y, t) << " " << x << " " << y << "\n";
+            if (is_a_pawn(x, y, t) && pawn_owner(x, y, t) != own){
                 kll++;
             }
             x += x_r; y += y_r;
@@ -123,17 +125,17 @@ bool checkers::is_move_correct(int x, int y, int who, int x1, int y1, int kll, i
     return true;
 }
 
-bool checkers::queen_way(int x, int y, int x1, int y1){
-    int own = pawn_owner(x, y);
+bool checkers::queen_way(int x, int y, int x1, int y1, int * t){
+    int own = pawn_owner(x, y, t);
     int x_r = x > x1 ? -1 : 1, y_r = y > y1 ? -1 : 1;
     bool next_empty = false;
     x += x_r; y += y_r;
     while (x != x1){
-        if (is_a_pawn(x, y)){
+        if (is_a_pawn(x, y, t)){
             if (next_empty)
                 return false;
             next_empty = true;
-            if (pawn_owner(x, y) == own)
+            if (pawn_owner(x, y, t) == own)
                 return false;
         } else {
             next_empty = false;
@@ -143,23 +145,26 @@ bool checkers::queen_way(int x, int y, int x1, int y1){
     return true;
 }
 
-bool checkers::is_a_pawn(int x, int y){
-    return !(tab[x*n+y] == EMPTY);
+bool checkers::is_a_pawn(int x, int y, int * t){
+    int n = 8;
+    return !(t[x*n+y] == EMPTY);
 }
 
-void checkers::kill(int x, int y){
-    tab[x*n+y] = EMPTY;
+void checkers::kill(int x, int y, int * t){
+    int n = 8;
+    t[x*n+y] = EMPTY;
 }
 
-bool checkers::has_next_move(int x, int y, int x1, int y1){
-    tab[x1*n+y1] = tab[x*n+y];
-    kill(x, y);
-    if (is_queen(x1, y1)){
+bool checkers::has_next_move(int x, int y, int x1, int y1, int * t){
+    int n = 8;
+    t[x1*n+y1] = t[x*n+y];
+    kill(x, y, t);
+    if (is_queen(x1, y1, t)){
         int kll = 0;
         int x_r = x > x1 ? -1 : 1, y_r = y > y1 ? -1 : 1;
         while (x != x1){
-            if (is_a_pawn(x, y)){
-                kill(x, y);
+            if (is_a_pawn(x, y, t)){
+                kill(x, y, t);
                 kll++;
             }
             x += x_r; y += y_r;
@@ -168,30 +173,32 @@ bool checkers::has_next_move(int x, int y, int x1, int y1){
     }
     if (std::abs((x-x1)) == 1)
         return false;
-    kill((x+x1)/2, (y+y1)/2);
+    kill((x+x1)/2, (y+y1)/2, t);
     return true;
 }
 
-bool checkers::is_queen(int x, int y){
-    return (tab[x*n+y] == QUEENB || tab[x*n+y] == QUEENW);
+bool checkers::is_queen(int x, int y, int * t){
+    int n = 8;
+    return (t[x*n+y] == QUEENB || t[x*n+y] == QUEENW);
 }
 
-bool checkers::correct_kill(int x, int y, int x1, int y1){
-    if (pawn_owner(x, y) != pawn_owner(x1, y1))
+bool checkers::correct_kill(int x, int y, int x1, int y1, int * t){
+    if (pawn_owner(x, y, t) != pawn_owner(x1, y1, t))
         return true;
     return false;
 }
 
-bool checkers::create_queen(int x, int y){
+bool checkers::create_queen(int x, int y, int * t){
+    int n = 8;
     if ((x != 0 && x != n-1) ||
-        (tab[x*n+y] != WHITE && tab[x*n+y] != BLACK) ||
-        (x == 0 && tab[x*n+y] == BLACK) ||
-        (x == n-1 && tab[x*n+y] == WHITE))
+        (t[x*n+y] != WHITE && t[x*n+y] != BLACK) ||
+        (x == 0 && t[x*n+y] == BLACK) ||
+        (x == n-1 && t[x*n+y] == WHITE))
         return false;
-    if (tab[x*n+y] == WHITE)
-        tab[x*n+y] = QUEENW;
+    if (t[x*n+y] == WHITE)
+        t[x*n+y] = QUEENW;
     else
-        tab[x*n+y] = QUEENB;
+        t[x*n+y] = QUEENB;
     return true;
 }
 
@@ -214,30 +221,30 @@ bool checkers::is_game_blocked(){
     for(int row=0;row<n;row++){
         for(int col=0;col<n;col++){
             if(tab[row*n+col] == WHITE){
-                if(col > 0 && row > 0 && !is_a_pawn(row-1,col-1))
+                if(col > 0 && row > 0 && !is_a_pawn(row-1,col-1, tab))
                     return false;
-                if(col < n-1 && row > 0 && !is_a_pawn(row-1,col+1))
+                if(col < n-1 && row > 0 && !is_a_pawn(row-1,col+1, tab))
                     return false;
-                if(col > 1 && row > 1 && pawn_owner(row-1,col-1) == BLACK && !is_a_pawn(row-2,col-2))
+                if(col > 1 && row > 1 && pawn_owner(row-1,col-1, tab) == BLACK && !is_a_pawn(row-2,col-2, tab))
                     return false;
-                if(col < n-2 && row > 1 && pawn_owner(row-1,col+1) == BLACK && !is_a_pawn(row-2,col+2))
+                if(col < n-2 && row > 1 && pawn_owner(row-1,col+1, tab) == BLACK && !is_a_pawn(row-2,col+2, tab))
                     return false;
             }
             else if(tab[row*n+col] == BLACK){
-                if(col > 0 && row < n-1  && !is_a_pawn(row+1,col-1))
+                if(col > 0 && row < n-1  && !is_a_pawn(row+1,col-1, tab))
                     return false;
-                if(col < n-1 && row < n-1 && !is_a_pawn(row+1,col+1))
+                if(col < n-1 && row < n-1 && !is_a_pawn(row+1,col+1, tab))
                     return false;
-                if(col > 1 && row < n-2 && pawn_owner(row+1,col-1) == WHITE && !is_a_pawn(row+2,col-2))
+                if(col > 1 && row < n-2 && pawn_owner(row+1,col-1, tab) == WHITE && !is_a_pawn(row+2,col-2, tab))
                     return false;
-                if(col < n-2 && row < n-2 && pawn_owner(row+1,col+1) == WHITE && !is_a_pawn(row+2,col+2))
+                if(col < n-2 && row < n-2 && pawn_owner(row+1,col+1, tab) == WHITE && !is_a_pawn(row+2,col+2, tab))
                     return false;
             }
             else if(tab[row*n+col] == QUEENW || tab[row*n+col] == QUEENB){
                 temp_col = col-1;
                 temp_row = row-1;
                 while(temp_col >= 0 && temp_row >= 0){
-                    if(!is_a_pawn(temp_row,temp_col) && queen_way(row,col,temp_row,temp_col))
+                    if(!is_a_pawn(temp_row,temp_col, tab) && queen_way(row,col,temp_row,temp_col, tab))
                         return false;
                     temp_col--;
                     temp_row--;
@@ -245,7 +252,7 @@ bool checkers::is_game_blocked(){
                 temp_col = col+1;
                 temp_row = row-1;
                 while(temp_col <= n-1 && temp_row >= 0){
-                    if(!is_a_pawn(temp_row,temp_col) && queen_way(row,col,temp_row,temp_col))    
+                    if(!is_a_pawn(temp_row,temp_col, tab) && queen_way(row,col,temp_row,temp_col,tab))    
                         return false;
                     temp_col++;
                     temp_row--;
@@ -253,7 +260,7 @@ bool checkers::is_game_blocked(){
                 temp_col = col-1;
                 temp_row = row+1;
                 while(temp_col >= 0 && temp_row <= n-1){
-                    if(!is_a_pawn(temp_row,temp_col) && queen_way(row,col,temp_row,temp_col))    
+                    if(!is_a_pawn(temp_row,temp_col, tab) && queen_way(row,col,temp_row,temp_col,tab))    
                         return false;
                     temp_col--;
                     temp_row++;
@@ -261,7 +268,7 @@ bool checkers::is_game_blocked(){
                 temp_col = col+1;
                 temp_row = row+1;
                 while(temp_col <= n-1 && temp_row <= n-1){
-                    if(!is_a_pawn(temp_row,temp_col) && queen_way(row,col,temp_row,temp_col))
+                    if(!is_a_pawn(temp_row,temp_col,tab) && queen_way(row,col,temp_row,temp_col,tab))
                         return false;
                     temp_col++;
                     temp_row++;
@@ -396,13 +403,13 @@ int checkers::calculate_future_queen_kills(){
                 temp_row = row-1;
                 temp_col = col-1;
                 while(temp_row >= 1 && temp_col >= 1){
-                    if(is_a_pawn(temp_row,temp_col)){
-                        if(pawn_owner(row,col) == pawn_owner(temp_row,temp_col))
+                    if(is_a_pawn(temp_row,temp_col,tab)){
+                        if(pawn_owner(row,col,tab) == pawn_owner(temp_row,temp_col,tab))
                             break;
-                        else if(is_a_pawn(temp_row-1,temp_col-1))
+                        else if(is_a_pawn(temp_row-1,temp_col-1,tab))
                             break;
                         else{
-                            kill_tab[temp_row*n+temp_col] = pawn_owner(temp_row,temp_col);
+                            kill_tab[temp_row*n+temp_col] = pawn_owner(temp_row,temp_col,tab);
                             temp_row--;
                             temp_col--;
                         }
@@ -413,13 +420,13 @@ int checkers::calculate_future_queen_kills(){
                 temp_row = row-1;
                 temp_col = col+1;
                 while(temp_row >= 1 && temp_col <= n-2){
-                    if(is_a_pawn(temp_row,temp_col)){
-                        if(pawn_owner(row,col) == pawn_owner(temp_row,temp_col))
+                    if(is_a_pawn(temp_row,temp_col,tab)){
+                        if(pawn_owner(row,col,tab) == pawn_owner(temp_row,temp_col,tab))
                             break;
-                        else if(is_a_pawn(temp_row-1,temp_col+1))
+                        else if(is_a_pawn(temp_row-1,temp_col+1,tab))
                             break;
                         else{
-                            kill_tab[temp_row*n+temp_col] = pawn_owner(temp_row,temp_col);
+                            kill_tab[temp_row*n+temp_col] = pawn_owner(temp_row,temp_col,tab);
                             temp_row--;
                             temp_col++;
                         }
@@ -430,13 +437,13 @@ int checkers::calculate_future_queen_kills(){
                 temp_row = row+1;
                 temp_col = col-1;
                 while(temp_row <= n-2 && temp_col >= 1){
-                    if(is_a_pawn(temp_row,temp_col)){
-                        if(pawn_owner(row,col) == pawn_owner(temp_row,temp_col))
+                    if(is_a_pawn(temp_row,temp_col,tab)){
+                        if(pawn_owner(row,col,tab) == pawn_owner(temp_row,temp_col,tab))
                             break;
-                        else if(is_a_pawn(temp_row+1,temp_col-1))
+                        else if(is_a_pawn(temp_row+1,temp_col-1,tab))
                             break;
                         else{
-                            kill_tab[temp_row*n+temp_col] = pawn_owner(temp_row,temp_col);
+                            kill_tab[temp_row*n+temp_col] = pawn_owner(temp_row,temp_col,tab);
                             temp_row++;
                             temp_col--;
                         }
@@ -447,13 +454,13 @@ int checkers::calculate_future_queen_kills(){
                 temp_row = row+1;
                 temp_col = col+1;
                 while(temp_row <= n-2 && temp_col <= n-2){
-                    if(is_a_pawn(temp_row,temp_col)){
-                        if(pawn_owner(row,col) == pawn_owner(temp_row,temp_col))
+                    if(is_a_pawn(temp_row,temp_col,tab)){
+                        if(pawn_owner(row,col,tab) == pawn_owner(temp_row,temp_col,tab))
                             break;
-                        else if(is_a_pawn(temp_row+1,temp_col+1))
+                        else if(is_a_pawn(temp_row+1,temp_col+1,tab))
                             break;
                         else{
-                            kill_tab[temp_row*n+temp_col] = pawn_owner(temp_row,temp_col);
+                            kill_tab[temp_row*n+temp_col] = pawn_owner(temp_row,temp_col,tab);
                             temp_row++;
                             temp_col++;
                         }
@@ -470,8 +477,8 @@ int checkers::calculate_future_queen_kills(){
                 white_dead++;
             else if(kill_tab[row*n+col] == BLACK)
                 black_dead++;
-            if(is_a_pawn(row,col)){
-                if(pawn_owner(row,col) == WHITE)
+            if(is_a_pawn(row,col,tab)){
+                if(pawn_owner(row,col,tab) == WHITE)
                     white_count++;
                 else
                     black_count++;
@@ -509,7 +516,7 @@ void checkers::move_switch(checkers &ch, int player){
         switch (input) {
             case 'a':
                 for (int i = ch.a_y-1; i >= 0; i--){
-                    if (ch.pawn_owner(ch.a_x, i) == player){
+                    if (ch.pawn_owner(ch.a_x, i, ch.tab) == player){
                         ch.a_y = i;
                         break;
                     }
@@ -519,7 +526,7 @@ void checkers::move_switch(checkers &ch, int player){
                 brk = false;
                 for (int i = ch.a_x+1; i < ch.n; i++){
                     for (int j = 0; j < ch.n; j++){
-                        if (ch.pawn_owner(i, j) == player){
+                        if (ch.pawn_owner(i, j, ch.tab) == player){
                             ch.a_x = i;
                             ch.a_y = j;
                             brk = true;
@@ -532,7 +539,7 @@ void checkers::move_switch(checkers &ch, int player){
                 break;
             case 'd':
                 for (int i = ch.a_y+1; i < ch.n; i++){
-                    if (ch.pawn_owner(ch.a_x, i) == player){
+                    if (ch.pawn_owner(ch.a_x, i, ch.tab) == player){
                         ch.a_y = i;
                         break;
                     }
@@ -542,7 +549,7 @@ void checkers::move_switch(checkers &ch, int player){
                 brk = false;
                 for (int i = ch.a_x-1; i >= 0; i--){
                     for (int j = 0; j < ch.n; j++){
-                        if (ch.pawn_owner(i, j) == player){
+                        if (ch.pawn_owner(i, j, ch.tab) == player){
                             ch.a_x = i;
                             ch.a_y = j;
                             brk = true;
@@ -568,7 +575,7 @@ void checkers::move(checkers &ch, int * xy, int player, bool next_move){
         if (next_move == false){
             std::cout << "Tura gracza: " << checkers::player_symbol(player) << "\n";
             for (int i = 0; i < ch.n*ch.n; ++i){
-                if (ch.pawn_owner(i/ch.n, i%ch.n) == player){
+                if (ch.pawn_owner(i/ch.n, i%ch.n, ch.tab) == player){
                     ch.a_x = i/ch.n;
                     ch.a_y = i%ch.n;
                     break;
@@ -580,7 +587,7 @@ void checkers::move(checkers &ch, int * xy, int player, bool next_move){
         }
         for (i = ch.a_x-1; i < ch.n; ++i){
             for (j = ch.a_y+1; j < ch.n; ++j){
-                if (ch.pawn_owner(i, j) == EMPTY){
+                if (ch.pawn_owner(i, j, ch.tab) == EMPTY){
                     ch.a_x = i;
                     ch.a_y = j;
                 }
@@ -589,7 +596,7 @@ void checkers::move(checkers &ch, int * xy, int player, bool next_move){
         if (i == ch.n && j == ch.n){
             for (i = 0; i < ch.n; ++i){
                 for (j = 0; j < ch.n; ++j){
-                    if (ch.pawn_owner(i, j) == EMPTY){
+                    if (ch.pawn_owner(i, j, ch.tab) == EMPTY){
                         ch.a_x = i;
                         ch.a_y = j;
                     }
@@ -612,7 +619,7 @@ void checkers::play(checkers &ch){
     int i = WHITE, i2 = BLACK, x, y, x1, y1;
     int xy[4];
     while (true){
-	if (i == player){
+	if (i == player || true){
 	        move(ch, xy, i, false);
         	x = xy[0]; y = xy[1]; x1 = xy[2]; y1 = xy[3];
         	int mv = ch.move(x, y, i, x1, y1, 0);
@@ -847,10 +854,10 @@ void copy_board(int * ch, checkers_point * ch2){
         ch2->board[i] = ch[i];
     }
 }
-
+/*
 checkers_point * again(checkers_point * ch, next_kill * first, next_kill * last, int pm){
     int x = first->t[0], y = first->t[1], x1 = first->t[2], y1 = first->t[3], * tab = first->parent_tab;
-    if(is_move_correct(x, y, pawn_owner(x, y, tab), x1, y1, tab)){
+    if(checkers::is_move_correct(x, y, checkers::pawn_owner(x, y, tab), x1, y1, tab)){
         checkers_point * chld;
         ch->next = new checkers_point;
         ch->next->parent = ch->parent;
@@ -863,7 +870,7 @@ checkers_point * again(checkers_point * ch, next_kill * first, next_kill * last,
         chld->board[x*8+y] = EMPTY;
         chld->board[(x+x1)/2*8+(y+y1)/2] = EMPTY;
         ch = chld;
-        create_queen(x1, y1, ch->board);
+        checkers::create_queen(x1, y1, ch->board);
         last->next = create_next_move(x1, y1, ch->board, x1+pm, y1+2);
         last = last->next;
         last->next = create_next_move(x1, y1, ch->board, x1+pm, y1-2);
@@ -876,7 +883,7 @@ checkers_point * create_node(checkers_point * ch, int x, int y, int x1, int y1, 
     int * tab = ch->board;
     if (ch->parent != NULL)
         tab = ch->parent->board;
-    if (is_move_correct(x, y, pawn_owner(x, y, tab), x1, y1, tab)){
+    if (checkers::is_move_correct(x, y, checkers::pawn_owner(x, y, tab), x1, y1, tab)){
         checkers_point * chld;
         if (!nxt){
             ch->children = new checkers_point;
@@ -900,7 +907,7 @@ checkers_point * create_node(checkers_point * ch, int x, int y, int x1, int y1, 
             chld->board[(x+x1)/2*8+(y+y1)/2] = EMPTY;
         ch = chld;
         nxt = true;
-        if (iskillsomethingnow && !queen && !(create_queen(x1, y1, (ch->board))){
+        if (kill && !queen && !(checkers::create_queen(x1, y1, (ch->board)))){
             int pm;
             if (ch->board[x1*8+y1] == WHITE){
                 pm = -2;
@@ -922,13 +929,13 @@ checkers_point * create_node(checkers_point * ch, int x, int y, int x1, int y1, 
     }
     return ch;
 }
-
+*/
 void create_tree_linear(checkers_point *x, int how_deep, int now) {
     if (how_deep == now)
         return;
     bool nxt = false;
-    for (int i = 0; i < 64; ++i){
-        switch (x->board[i]) {
+    //for (int i = 0; i < 64; ++i){
+ /*       switch (x->board[i]) {
             case WHITE:
                 if (now % 2 == 1){
                     x = create_node(x, i/8, i%8, i/8-1, i%8-1, nxt, false, false);
@@ -959,7 +966,7 @@ void create_tree_linear(checkers_point *x, int how_deep, int now) {
                 break;
         }
     }
-    
+   */ 
     x = x->children;
     while (x != NULL){
         create_tree_linear(x, how_deep, now+1);
