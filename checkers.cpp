@@ -68,7 +68,7 @@ int checkers::move(int x, int y, int who, int x1, int y1, int kll){
     return 1;
 }
 
-bool checkers::is_move_correct(int x, int y, int who, int x1, int y1, int kll){
+bool checkers::is_move_correct(int x, int y, int who, int x1, int y1, int kll, int * tab = NULL){
     if (x < 0 || x >= n || x1 < 0 || x1 >= n || y < 0 || y >= n || y1 < 0 || y1 >= n ){
         std::cout << "WRONG!\n";
         return false;
@@ -827,8 +827,144 @@ void cuda_stop(){
     cuCtxDestroy(cuContext);
 }
 
-void create_tree_linear(checkers_point *x, int * tab, int how_deep) {
-	
+
+struct next_kill{
+    int t[4];
+    next_kill * next = NULL;
+    int * parent_tab;
+};
+
+next_kill * create_next_move(int x, int y, int * par_tb, int x1, int y1){
+    next_kill * res = new next_kill;
+    res->t[0] = x; res->t[1] = y;
+    res->t[2] = x1; res->t[3] = y1;
+    res->parent_tab = par_tb;
+    return res;
+}
+
+void copy_board(int * ch, checkers_point * ch2){
+    for (int i = 0; i < 64; i++){
+        ch2->board[i] = ch[i];
+    }
+}
+
+checkers_point * again(checkers_point * ch, next_kill * first, next_kill * last, int pm){
+    int x = first->t[0], y = first->t[1], x1 = first->t[2], y1 = first->t[3], * tab = first->parent_tab;
+    if(is_move_correct(x, y, pawn_owner(x, y, tab), x1, y1, tab)){
+        checkers_point * chld;
+        ch->next = new checkers_point;
+        ch->next->parent = ch->parent;
+        ch->next->prev = ch;
+        chld = ch->next;
+        chld->min_max = !chld->parent->min_max;
+        copy_board(tab, chld);
+        chld->parent->how_much_children++;
+        chld->board[x1*8+y1] = chld->board[x*8+y];
+        chld->board[x*8+y] = EMPTY;
+        chld->board[(x+x1)/2*8+(y+y1)/2] = EMPTY;
+        ch = chld;
+        create_queen(x1, y1, ch->board);
+        last->next = create_next_move(x1, y1, ch->board, x1+pm, y1+2);
+        last = last->next;
+        last->next = create_next_move(x1, y1, ch->board, x1+pm, y1-2);
+        last = last->next;
+    }
+    return ch;
+}
+
+checkers_point * create_node(checkers_point * ch, int x, int y, int x1, int y1, bool &nxt, bool queen, bool kill){
+    int * tab = ch->board;
+    if (ch->parent != NULL)
+        tab = ch->parent->board;
+    if (is_move_correct(x, y, pawn_owner(x, y, tab), x1, y1, tab)){
+        checkers_point * chld;
+        if (!nxt){
+            ch->children = new checkers_point;
+            ch->children->parent = ch;
+            ch->children->prev = NULL;
+            chld = ch->children;
+        } else {
+            ch->next = new checkers_point;
+            ch->next->parent = ch->parent;
+            ch->next->prev = ch;
+            chld = ch->next;
+        }
+        chld->min_max = !chld->parent->min_max;
+        chld->how_much_children = 0;
+        chld->next = chld->children = NULL;
+        copy_board(chld->parent->board, chld);
+        chld->parent->how_much_children++;
+        chld->board[x1*8+y1] = chld->board[x*8+y];
+        chld->board[x*8+y] = EMPTY;
+        if (kill && queen == false)
+            chld->board[(x+x1)/2*8+(y+y1)/2] = EMPTY;
+        ch = chld;
+        nxt = true;
+        if (iskillsomethingnow && !queen && !(create_queen(x1, y1, (ch->board))){
+            int pm;
+            if (ch->board[x1*8+y1] == WHITE){
+                pm = -2;
+            } else {
+                pm = 2;
+            }
+            next_kill * first, * last, * temp;
+            first = create_next_move(x1, y1, ch->board, x1+pm, y1+2);
+            first->next = last = create_next_move(x1, y1, ch->board, x1+pm, y1-2);
+            while (first != NULL){
+                ch = again(ch, first, last, pm);
+                while (last->next != NULL)
+                    last = last->next;
+                temp = first;
+                first = first->next;
+                delete temp;
+            }
+        }
+    }
+    return ch;
+}
+
+void create_tree_linear(checkers_point *x, int how_deep, int now) {
+    if (how_deep == now)
+        return;
+    bool nxt = false;
+    for (int i = 0; i < 64; ++i){
+        switch (x->board[i]) {
+            case WHITE:
+                if (now % 2 == 1){
+                    x = create_node(x, i/8, i%8, i/8-1, i%8-1, nxt, false, false);
+                    x = create_node(x, i/8, i%8, i/8-1, i%8+1, nxt, false, false);
+                    x = create_node(x, i/8, i%8, i/8-2, i%8-2, nxt, false, true);
+                    x = create_node(x, i/8, i%8, i/8-2, i%8+2, nxt, false, true);
+                }
+                break;
+            case BLACK:
+                if (now % 2 == 0){
+                    x = create_node(x, i/8, i%8, i/8+1, i%8-1, nxt, false, false);
+                    x = create_node(x, i/8, i%8, i/8+1, i%8+1, nxt, false, false);
+                    x = create_node(x, i/8, i%8, i/8+2, i%8-2, nxt, false, true);
+                    x = create_node(x, i/8, i%8, i/8+2, i%8+2, nxt, false, true);
+                }
+                break;
+            case QUEENW:
+                if (now % 2 == 1){
+                    
+                }
+                break;
+            case QUEENB:
+                if (now % 2 == 0){
+                    
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    
+    x = x->children;
+    while (x != NULL){
+        create_tree_linear(x, how_deep, now+1);
+        x = x->next;
+    }
 }
 
 void set_root_linear(checkers_point *x,int * tab){
@@ -889,7 +1025,7 @@ void get_best(checkers_point *x, int *tab) {
 int * computer_turn2(int siize, int row_with_pawn, int * tab_with_board){
 	checkers_point * x = new checkers_point;
 	set_root_linear(x,tab_with_board);
-	create_tree_linear(x, tab_with_board,4);
+	create_tree_linear(x, 4, 1);
 	alpha_beta_linear(x);
 	get_best(x,tab_with_board);
 	delete_tree_linear(x);

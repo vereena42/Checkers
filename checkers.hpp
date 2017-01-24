@@ -76,7 +76,7 @@ public:
     void new_game();
     int move(int x, int y, int who, int x1, int y1, int kll);
     int pawn_owner(int x, int y);
-    bool is_move_correct(int x, int y, int who, int x1, int y1, int kll);
+    bool is_move_correct(int x, int y, int who, int x1, int y1, int kll, int * tab = NULL);
     bool has_next_move(int x, int y, int x1, int y1);
     bool is_a_pawn(int x, int y);
     bool correct_kill(int x, int y, int x1, int y1);
