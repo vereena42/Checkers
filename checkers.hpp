@@ -117,6 +117,7 @@ struct checkers_point{
     checkers_point * next = NULL;
     checkers_point * prev = NULL;
     checkers_point * parent = NULL;
+    checkers_point * tempnext = NULL;
     bool min_max;
     int alpha = -1000000000;
     int beta = 1000000000;

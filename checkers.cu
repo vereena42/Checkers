@@ -13,6 +13,7 @@ struct checkers_point{
     checkers_point * next = NULL;
     checkers_point * prev = NULL;
     checkers_point * parent = NULL;
+    checkers_point * tempnext = NULL;
     bool min_max;
     int value;
     int alpha = -1000000000;
@@ -41,6 +42,7 @@ class Queue{
 					this->last = point;
 				}
 				else {
+					this->last->tempnext = this->last->next;
 					this->last->next = point;
 					this->last = point;
 				}
@@ -71,12 +73,14 @@ class Queue{
 			checkers_point * pop() {
 				checkers_point * firs,* seco;
 				firs = this->first;
+
 				if(firs == NULL)
 					return NULL;
 				else
 					seco = firs->next;
 				if(seco==NULL || firs->parent != seco->parent) {
 					firs->next = NULL;
+					 first->next=first->tempnext;
 				}
 				this->first = seco;
 				this->size = this->size - 1;
@@ -276,6 +280,7 @@ __device__
 		ch->next = new checkers_point;
                 ch->next->parent = ch->parent;
                 ch->next->prev = ch;
+		ch->next->tempnext = NULL;
                 chld = ch->next;
 		chld->min_max = !chld->parent->min_max;
 		chld->alpha = -1000000000;
@@ -308,12 +313,14 @@ __device__
                                 ch->children = new checkers_point;
 				ch->children->parent = ch;
 				ch->children->prev = NULL;
+				ch->children->tempnext = NULL;
 				chld = ch->children;
                         } else {
 //				printf("next ");
 				ch->next = new checkers_point;
 				ch->next->parent = ch->parent;
 				ch->next->prev = ch;
+				ch->next->tempnext = NULL;
 				chld = ch->next;
 			}
 			chld->min_max = !chld->parent->min_max;
@@ -836,6 +843,7 @@ __global__
 	    ch->next = NULL;
 	    ch->prev = NULL;
 	    ch->parent = NULL;
+	    ch->tempnext = NULL;
 		ch->alpha = -1000000000;
 		ch->beta = 1000000000;
 	    if(player == WHITE)
