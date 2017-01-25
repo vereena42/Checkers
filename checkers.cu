@@ -494,12 +494,12 @@ __global__
     void delete_tree(checkers_point * ch, int thread_num, checkers_point ** V) {
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
 		__shared__ int count;
+		count = 0;
 		if(thid == 0){
 		printf("delete_tree");
             checkers_point * child = ch->children;
             checkers_point * temp;
             Queue Q;
-            int count = 0;
 
             Q.add(child);
             while(!Q.empty() && Q.get_size()+Q.front()->how_much_children < thread_num) {
@@ -509,7 +509,6 @@ __global__
 				delete temp;
             }
 
-			count = 0;
             while(!Q.empty()) {
 				temp = Q.pop();
 				V[count]=temp;
@@ -709,13 +708,13 @@ __device__
 			temp = tempQueue.pop();
 			if(temp->alpha!=-1000000000 || temp->beta!=1000000000)
 				Q.add_one(temp);
-			if(temp->children==NULL) {
+            else if(temp->children==NULL) {
                 int wynik = calculate_board_value(temp->board);//policz stan planszy
                 temp->alpha = wynik;
                 temp->beta = wynik;
                 Q.add_one(temp);
             }
-			if(temp->children!=NULL)
+            else if(temp->children!=NULL)
 				tempQueue.add(temp->children);
 		}
 		//pamietaj parenta pierwszego z kolejki
@@ -744,10 +743,10 @@ __global__
         //rozdziel i wrzuc do V
 		int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
 		__shared__ int count;
+		count = 0;
 		if(thid == 0){
 		    checkers_point * temp;
             Queue Q;
-            int count = 0;
             Q.add(ch);
             while(!Q.empty() && Q.get_size()+Q.front()->how_much_children < thread_num) {
                 temp = Q.pop();
@@ -757,7 +756,6 @@ __global__
 				temp->beta=1000000000;
             }
             
-			count = 0;
             while(!Q.empty()) {
 				temp = Q.pop();
 				temp->alpha=-1000000000;
