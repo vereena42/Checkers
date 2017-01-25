@@ -262,9 +262,9 @@ __device__
 __device__
 	next_kill * queen_move_again_again(int * tab, int x1, int y1, int x, int y, next_kill * last){
 		if (is_move_correct(tab, x1, y1, pawn_owner(tab, x1, y1), x, y)
-                        /* && has_next_move(x1, y1, x, y, tab, false)*/) {
-                     //last->next = create_next_move(x1, y1, tab, x, y);
-                     //last = last->next;
+                         && has_next_move(x1, y1, x, y, tab, false)) {
+                     last->next = create_next_move(x1, y1, tab, x, y);
+                     last = last->next;
                 }
 		return last;
 	}
@@ -315,7 +315,7 @@ __device__
 				ch->next = new checkers_point;
 				ch->next->parent = ch->parent;
 				ch->next->prev = ch;
-                        	chld = ch->next;
+				chld = ch->next;
 			}
 			chld->min_max = !chld->parent->min_max;
 			chld->alpha = -1000000000;
@@ -353,7 +353,7 @@ __device__
 			}
 		
 			if (queen && has_next_move(x1, y1, x, y, tab, true)){
-		/*		next_kill * first, * last, * temp;
+				next_kill * first, * last, * temp;
                                 first = create_next_move(x1, y1, ch->board, x1+1, y1+1);
 				first->next = last = create_next_move(x1, y1, ch->board, x1-1, y1+1);
                                 last->next = create_next_move(x1, y1, ch->board, x1+1, y1-1);
@@ -361,20 +361,20 @@ __device__
 				last->next = create_next_move(x1, y1, ch->board, x1-1, y1-1);
 				last = last->next;
 				for (int i = 2; i < 8; i++){
-//					last = queen_move_again_again(tab, x1, y1, x1+i, y1+i, last);
-					//last = queen_move_again_again(tab, x1, y1, x1+i, y1-i, last);
-					//last = queen_move_again_again(tab, x1, y1, x1-i, y1+i, last);
-					//last = queen_move_again_again(tab, x1, y1, x1-i, y1-i, last);
+					last = queen_move_again_again(tab, x1, y1, x1+i, y1+i, last);
+					last = queen_move_again_again(tab, x1, y1, x1+i, y1-i, last);
+					last = queen_move_again_again(tab, x1, y1, x1-i, y1+i, last);
+					last = queen_move_again_again(tab, x1, y1, x1-i, y1-i, last);
 				}
                                 while (first != NULL){
-//                                        ch = again_queen(ch, first, last);
+                                        ch = again_queen(ch, first, last);
                                         while (last->next != NULL)
                                                 last = last->next;
                                         temp = first;
                                         first = first->next;
                                         delete temp;
                                 }
-		*/	}
+			}
 
 		}
 		return ch;
@@ -843,19 +843,15 @@ __global__
             }
 	    if (player == WHITE){
 	    while (ch->alpha != ch2->beta){
+		if (ch2->next == NULL)
+			break;
 		ch2 = ch2->next;
-		if (ch2 == NULL){
-                printf("No result -> next = null\n");
-                return;
-            }
 	    }
 	    } else {
 	    while (ch->beta != ch2->alpha){
+		if (ch2->next == NULL)
+			break;
                 ch2 = ch2->next;
-		if (ch2 == NULL){
-                printf("No result -> next = null\n");
-                return;
-            }
 	    }
 	    }
             for (int i = 0; i < 64; ++i)
