@@ -498,7 +498,7 @@ __global__
 		__shared__ int count;
 		count = 0;
 		if(thid == 0){
-		printf("delete_tree");
+	//	printf("delete_tree");
             checkers_point * child = ch->children;
             checkers_point * temp;
             Queue Q;
@@ -805,7 +805,7 @@ __global__
     void print_tree(int n, checkers_point * ch, int i, int player){
         int thid = (blockIdx.x * blockDim.x) + threadIdx.x;
         if (thid == 0){
-            printf("____\n");
+            printf("\n\n");
 //            print_tr(ch);
 //            printf("____\n");
         }

@@ -248,13 +248,15 @@ bool checkers::create_queen(int x, int y, int * t){
 }
 
 bool checkers::is_end_of_game(){
+    if (is_there_winner() ||
+            is_no_pawns() ||
+            is_game_blocked())
+	return true;
     int res = zobrist_int(tab);
     if (cycle.find(res) != cycle.end())
-	return true;
+        return true;
     cycle.insert(res);
-    return is_there_winner() ||
-            is_no_pawns() ||
-            is_game_blocked();
+    return false;
 }
 
 bool checkers::is_no_pawns(){
@@ -672,9 +674,11 @@ void checkers::play_computer_vs_computer(checkers &ch){
     int hd1, hd2;
     std::cout << "Wprowadź dwie liczby oznaczające zagłębienie jednego i drugiego gracza:\n";
     std::cin >> hd1 >> hd2;
+ //   bool wait = false;
     int iwhite = hd1, iblack = hd2;
     int i = WHITE, i2 = BLACK;
     while (true){
+//	    system("sleep 1");
             int * new_board = computer_turn(ch.n, ch.row_with_pawn, ch.tab, i, hd1);
             for (int k = 0; k < ch.n*ch.n; k++)
                 ch.tab[k] = new_board[k];
@@ -693,6 +697,7 @@ void checkers::play_computer_vs_computer(checkers &ch){
 }
 
 void checkers::play(checkers &ch){
+    std::cout << ch << "\n";
     init_zobrist();
     int comp = WHITE, player = BLACK;
     bool plvspl = false;
