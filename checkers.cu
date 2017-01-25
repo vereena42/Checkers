@@ -815,6 +815,7 @@ __global__
 	    ch->children = NULL;
 	    ch->next = NULL;
 	    ch->prev = NULL;
+	    ch->parent = NULL;
 	    if(player == WHITE)
 	        ch->min_max = true;
         else
