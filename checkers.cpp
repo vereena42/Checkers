@@ -299,12 +299,19 @@ bool checkers::is_there_winner(){
     return black_count == 0 || white_count == 0;
 }
 
-int checkers::check_who_won(){
+std::string win_symbol(int win){
+	if (win == BLACK)
+		return outB;
+	else
+		return outW;
+}
+
+std::string checkers::check_who_won(){
     if (is_no_pawns())
-        return who_got_more_queens();
+        return win_symbol(who_got_more_queens());
     if (is_game_blocked())
-        return who_got_more_points();
-    return who_got_pawns();
+        return win_symbol(who_got_more_points());
+    return win_symbol(who_got_pawns());
 }
 
 int checkers::who_got_more_queens(){
@@ -622,6 +629,7 @@ void checkers::play_computer_vs_computer(checkers &ch){
     int hd1, hd2;
     std::cout << "Wprowadź dwie liczby oznaczające zagłębienie jednego i drugiego gracza:\n";
     std::cin >> hd1 >> hd2;
+    int iwhite = hd1, iblack = hd2;
     int i = WHITE, i2 = BLACK;
     while (true){
             int * new_board = computer_turn(ch.n, ch.row_with_pawn, ch.tab, i, hd1);
@@ -629,10 +637,13 @@ void checkers::play_computer_vs_computer(checkers &ch){
                 ch.tab[k] = new_board[k];
             std::swap(i, i2);
             std::swap(hd1, hd2);
+		std::cout << "\n" << ch << "\n";
         if (ch.is_end_of_game())
             break;
     }
-    std::cout << "\n" << ch << "\nPlayer " << ch.check_who_won() << " won!\n";
+    std::cout << "Zagłębienie dla gracza " << outW << " " << iwhite << "\n";
+    std::cout << "Zagłębienie dla gracza " << outB << " " << iblack << "\n";
+    std::cout << "\n" << ch << "\nPlayer " << ch.check_who_won() << "  won!\n";
 }
 
 void checkers::play(checkers &ch){
@@ -700,7 +711,7 @@ void checkers::play(checkers &ch){
         if (ch.is_end_of_game())
             break;
     }
-    std::cout << "\n" << ch << "\nPlayer " << ch.check_who_won() << " won!\n";
+    std::cout << "\n" << ch << "\nPlayer " << ch.check_who_won() << "  won!\n";
     delete [] new_board;
 }
 
@@ -790,6 +801,7 @@ size_t size, size_tab;
 checkers_point * a;
 
 void cuda_start(){
+	std::cout << "?";
     cu_auto_assert(cuInit(0));
     cu_auto_assert(cuDeviceGet(&cuDevice, 0));
     cu_auto_assert(cuCtxCreate(&cuContext, 0, cuDevice));

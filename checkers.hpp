@@ -94,7 +94,7 @@ public:
     bool is_no_pawns();
     bool is_game_blocked();
     bool is_there_winner();
-    int check_who_won();
+    std::string check_who_won();
     int who_got_more_queens();
     int who_got_more_points();
     int who_got_pawns();

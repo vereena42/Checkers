@@ -11,10 +11,11 @@
 
 int main(int argc, const char * argv[]) {
     //system("stty raw");
-//    cuda_start();
+    cuda_start();
     srand( time( NULL ) );
     checkers warcaby;
+    std::cout << "?";
     checkers::play(warcaby);
-//    cuda_stop();
+    cuda_stop();
     return 0;
 }
