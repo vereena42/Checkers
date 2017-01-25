@@ -279,6 +279,8 @@ __device__
                 ch->next->prev = ch;
                 chld = ch->next;
 		chld->min_max = !chld->parent->min_max;
+		chld->alpha = -1000000000;
+		chld->beta = 1000000000;
 		copy_board(tab, chld);
 		chld->parent->how_much_children++;
 		chld->board[x1*8+y1] = chld->board[x*8+y];
@@ -316,6 +318,8 @@ __device__
                         	chld = ch->next;
 			}
 			chld->min_max = !chld->parent->min_max;
+			chld->alpha = -1000000000;
+			chld->beta = 1000000000;
 			chld->how_much_children = 0;
 			chld->next = chld->children = NULL;
 			copy_board(chld->parent->board, chld);
@@ -816,6 +820,8 @@ __global__
 	    ch->next = NULL;
 	    ch->prev = NULL;
 	    ch->parent = NULL;
+		ch->alpha = -1000000000;
+		ch->beta = 1000000000;
 	    if(player == WHITE)
 	        ch->min_max = true;
         else
