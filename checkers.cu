@@ -154,7 +154,6 @@ bool correct_kill(int * tab, int x, int y, int x1, int y1){
 
 __device__
 bool queen_way(int * tab, int x, int y, int x1, int y1){
-	return false;
     int own = pawn_owner(tab, x, y);
     int x_r = x > x1 ? -1 : 1, y_r = y > y1 ? -1 : 1;
     bool next_empty = false;
@@ -207,7 +206,7 @@ bool is_move_correct(int * tab, int x, int y, int who, int x1, int y1){
         return false;
     }
     if ((tab[x*n+y] == QUEENW || tab[x*n+y] == QUEENB) && (!queen_way(tab, x, y, x1, y1))){
-//        printf("queen problem");
+        printf("queen problem");
 	return false;
     }
     if (!is_queen(tab, x, y) && std::abs((x-x1)) > 1 && !correct_kill(tab, x, y, (x1+x)/2, (y1+y)/2)){
@@ -454,6 +453,8 @@ __device__
 		ch2 = dismember_child(ch2, i/8, i % 8, how_deep, nxt, player);
 	    }
 	}
+	if (nxt == false)
+		printf("????");
     }
 
 __global__

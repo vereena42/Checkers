@@ -48,11 +48,12 @@ void checkers::new_game(){
    // tab[0] = tab[9] = tab[11] = tab[13] = tab[16] = tab[18] = tab[20] = tab[22] = EMPTY;
     //tab[25] = BLACK;
     //tab[18] = WHITE;
-   /*
-    for (int i = 0; i < 64; i++)
-	tab[i] = EMPTY;
-    tab[9] = tab[20]=  BLACK;
-    tab[18] = QUEENW*/;
+   
+  //  for (int i = 0; i < 64; i++)
+//	tab[i] = EMPTY;
+    //tab[0] = tab[2] = tab[4] = tab[6] = QUEENW;
+    //tab[9] = tab[11] = tab[13] = WHITE;
+    //tab[59] = QUEENB;
 }
 
 int checkers::pawn_owner(int x, int y, int * t){
