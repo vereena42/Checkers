@@ -419,22 +419,38 @@ __device__
 		break;
 	    case QUEENB:
 		if (turn_no % 2 == bb){
-		    for (int i = 0; i < 8; i++){
+		    /*for (int i = 0; i < 8; i++){
 			ch = pawn(ch, x, y, x+i, y-i, nxt, false, true);
 			ch = pawn(ch, x, y, x+i, y+i, nxt, false, true);
 			ch = pawn(ch, x, y, x-i, y-i, nxt, false, true);
 			ch = pawn(ch, x, y, x-i, y+i, nxt, false, true);
-		    }
+		    }*/
+                        ch = pawn(ch, x, y, x+1, y-1, nxt, false, true);
+                        ch = pawn(ch, x, y, x+1, y+1, nxt, false, true);
+                        ch = pawn(ch, x, y, x-1, y-1, nxt, false, true);
+                        ch = pawn(ch, x, y, x-1, y+1, nxt, false, true);
+                        ch = pawn(ch, x, y, x+2, y-2, nxt, false, true);
+                        ch = pawn(ch, x, y, x+2, y+2, nxt, false, true);
+                        ch = pawn(ch, x, y, x-2, y-2, nxt, false, true);
+                        ch = pawn(ch, x, y, x-2, y+2, nxt, false, true);
 		}
 		break;
 	    case QUEENW:
-                if (turn_no % 2 == ww){
+                if (turn_no % 2 == ww){/*
                     for (int i = 0; i < 8; i++){
 			ch = pawn(ch, x, y, x+i, y-i, nxt, false, true);
                         ch = pawn(ch, x, y, x+i, y+i, nxt, false, true);
                         ch = pawn(ch, x, y, x-i, y-i, nxt, false, true);
                         ch = pawn(ch, x, y, x-i, y+i, nxt, false, true);
-                    }
+                    }*/
+                        ch = pawn(ch, x, y, x+1, y-1, nxt, false, true);
+                        ch = pawn(ch, x, y, x+1, y+1, nxt, false, true);
+                        ch = pawn(ch, x, y, x-1, y-1, nxt, false, true);
+                        ch = pawn(ch, x, y, x-1, y+1, nxt, false, true);
+                        ch = pawn(ch, x, y, x+2, y-2, nxt, false, true);
+                        ch = pawn(ch, x, y, x+2, y+2, nxt, false, true);
+                        ch = pawn(ch, x, y, x-2, y-2, nxt, false, true);
+                        ch = pawn(ch, x, y, x-2, y+2, nxt, false, true);
                 }
 		break;
 	    default:

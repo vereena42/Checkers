@@ -678,7 +678,7 @@ void checkers::play_computer_vs_computer(checkers &ch){
     int iwhite = hd1, iblack = hd2;
     int i = WHITE, i2 = BLACK;
     while (true){
-//	    system("sleep 1");
+	   // system("sleep 1");
             int * new_board = computer_turn(ch.n, ch.row_with_pawn, ch.tab, i, hd1);
             for (int k = 0; k < ch.n*ch.n; k++)
                 ch.tab[k] = new_board[k];
