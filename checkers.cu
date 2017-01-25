@@ -739,26 +739,28 @@ __device__
             }
             else if(temp->children!=NULL)
 				tempQueue.add(temp->children);
-		}
+	    }
 		//pamietaj parenta pierwszego z kolejki
-		checkers_point * parent = Q.front()->parent;		
-		//lecac po kolejce modyfikuj parenta danego liscia
-			//jak parent nowego goscia jest inny niz poprzedni dorzuc poprzedni na kolejke i zastap go w zmiennej nowym
-		while(!Q.empty()) {
-			temp = Q.pop();
-			if(temp==ch) break;
-			if(temp->parent!=NULL) {
-				if(temp->min_max)
-					temp->parent->beta = min(temp->alpha,temp->parent->beta);
-				else
-					temp->parent->alpha = max(temp->beta,temp->parent->alpha);
-			}	
-			if(parent!=temp->parent) {
-				Q.add_one(parent);
-				parent = temp->parent;
-			}
-		}
-		Q.clean();
+	    checkers_point * parent = Q.front()->parent;
+            Q.add_one(parent);
+            //lecac po kolejce modyfikuj parenta danego liscia
+            //jak parent nowego goscia jest inny niz poprzedni dorzuc poprzedni na kolejke i zastap go w zmiennej nowym
+            while(!Q.empty()) {
+                temp = Q.pop();
+                if(temp==ch) break;
+                if(temp->parent!=NULL) {
+                    if(temp->min_max)
+                    	temp->parent->beta = min(temp->alpha,temp->parent->beta);
+                    else
+               		temp->parent->alpha = max(temp->beta,temp->parent->alpha);
+                }    
+                if(parent!=temp->parent) {
+                    if(temp->parent!=NULL)
+                        Q.add_one(temp->parent);
+                    parent = temp->parent;
+                }
+	    }
+	    Q.clean();
 		//tadam!
 
 	}
