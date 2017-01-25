@@ -330,7 +330,8 @@ __device__
                             chld->board[(x+x1)/2*8+(y+y1)/2] = EMPTY;
 			ch = chld;
 			nxt = true;
-//			create_queen(ch->board, x1, y1);
+			if (!iskillsomethingnow)
+			    create_queen(ch->board, x1, y1);
 //			printf("%d, %d -> %d, %d\n", x, y, x1, y1);
 			if (iskillsomethingnow && queen == false && (create_queen(ch->board, x1, y1) == false)){
 				int pm;
