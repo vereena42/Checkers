@@ -806,8 +806,8 @@ void cuda_start(){
     }
     blocks_per_grid = (cuda_n+1023)/1024;
     threads_per_block = 1024;
-    blocks_per_grid2 = 100;
-    threads_per_block2 = 100;
+    blocks_per_grid2 = 1;
+    threads_per_block2 = 1000;
     num_threads = threads_per_block2 * blocks_per_grid2;
     size = sizeof(checkers_point)*cuda_n;
     size_tab = sizeof(int)*64;
@@ -1075,6 +1075,7 @@ int * computer_turn(int siize, int row_with_pawn, int * tab_with_board, int play
 		cu_auto_assert(cuCtxSynchronize());
     cu_auto_assert(cuLaunchKernel(copy_best_result, blocks_per_grid, 1, 1, threads_per_block, 1, 1, 0, 0, args_root, 0));
 		cu_auto_assert(cuCtxSynchronize());
+    cu_auto_assert(cuLaunchKernel(delete_tree, blocks_per_grid2, 1, 1, threads_per_block2, 1, 1, 0, 0, args2, 0));
     cu_auto_assert(cuMemcpyDtoH(tab_with_board, Atab, size_tab));
     return tab_with_board;
 }
