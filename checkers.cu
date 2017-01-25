@@ -741,6 +741,7 @@ __device__
 			//jak parent nowego goscia jest inny niz poprzedni dorzuc poprzedni na kolejke i zastap go w zmiennej nowym
 		while(!Q.empty()) {
 			temp = Q.pop();
+			if(temp==ch) break;
 			if(temp->parent!=NULL) {
 				if(temp->min_max)
 					temp->parent->beta = min(temp->alpha,temp->parent->beta);
@@ -752,6 +753,7 @@ __device__
 				parent = temp->parent;
 			}
 		}
+		Q.clean();
 		//tadam!
 
 	}

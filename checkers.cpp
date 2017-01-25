@@ -674,6 +674,10 @@ void checkers::play_computer_vs_computer(checkers &ch){
     int hd1, hd2;
     std::cout << "Wprowadź dwie liczby oznaczające zagłębienie jednego i drugiego gracza:\n";
     std::cin >> hd1 >> hd2;
+//    while (hd1 < 1 || hd2 < 1 || hd1 > 2 || hd2 > 2){
+//	std::cout << "Muszą byc z zakresu 1-2\n";
+//	std::cin >> hd1 >> hd2;
+ //   }
  //   bool wait = false;
     int iwhite = hd1, iblack = hd2;
     int i = WHITE, i2 = BLACK;
@@ -712,8 +716,8 @@ void checkers::play(checkers &ch){
     } else if (input == "1"){
         plvspl = true;
     } else {
-        //std::cout << "Wybierz 1 jeśli ruch gracza komputerowego ma być liczony na cudzie, 2 jeśli nie.\n";
-        //std::cin >> input;
+        std::cout << "Wybierz 1 jeśli ruch gracza komputerowego ma być liczony na cudzie, 2 jeśli nie.\n";
+        std::cin >> input;
         if (true || input == "1"){
             cudda = true;
             std::cout << "Wybierz pionki, b jeśli biały, c jeśli czarny\n";
@@ -725,11 +729,14 @@ void checkers::play(checkers &ch){
     
     int i = WHITE, i2 = BLACK, x, y, x1, y1;
     int xy[4];
+    bool check_winer = true;
     while (true){
 	if (i == player || plvspl){
 	        move(ch, xy, i, false);
         	x = xy[0]; y = xy[1]; x1 = xy[2]; y1 = xy[3];
         	int mv = ch.move(x, y, i, x1, y1, 0);
+                if (mv == 0)
+                   check_winer = false;
         	if (mv == 2){
            	    while (mv == 2 || mv == 0){
                         std::cout << ch << "\n";
@@ -760,8 +767,10 @@ void checkers::play(checkers &ch){
 		    ch.tab[k] = new_board[k];
 		std::swap(i, i2);
 	}
-        if (ch.is_end_of_game())
-            break;
+        if (check_winer)
+	        if (ch.is_end_of_game())
+        	    break;
+    	check_winer = true;
     }
     std::cout << "\n" << ch << "\nPlayer " << ch.check_who_won() << "  won!\n";
     delete [] new_board;
@@ -853,7 +862,7 @@ size_t size, size_tab;
 checkers_point * a;
 
 void cuda_start(){
-	std::cout << "?";
+//	std::cout << "?";
     cu_auto_assert(cuInit(0));
     cu_auto_assert(cuDeviceGet(&cuDevice, 0));
     cu_auto_assert(cuCtxCreate(&cuContext, 0, cuDevice));
