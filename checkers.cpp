@@ -39,9 +39,9 @@ void checkers::new_game(){
     tab[43] = tab[47] = tab[48] = tab[50] = tab[54] = EMPTY;
     tab[38] = tab[47] = BLACK;*/
    
-    tab[0] = tab[9] = tab[11] = tab[13] = tab[16] = tab[18] = tab[20] = tab[22] = EMPTY;
-    tab[25] = BLACK;
-    tab[18] = WHITE;
+   // tab[0] = tab[9] = tab[11] = tab[13] = tab[16] = tab[18] = tab[20] = tab[22] = EMPTY;
+    //tab[25] = BLACK;
+    //tab[18] = WHITE;
    /*
     for (int i = 0; i < 64; i++)
 	tab[i] = EMPTY;
@@ -184,6 +184,8 @@ bool checkers::is_queen(int x, int y, int * t){
 }
 
 bool checkers::correct_kill(int x, int y, int x1, int y1, int * t){
+    if (pawn_owner(x1, y1, t) == EMPTY)
+        return false;
     if (pawn_owner(x, y, t) != pawn_owner(x1, y1, t))
         return true;
     return false;
@@ -631,6 +633,7 @@ void checkers::play(checkers &ch){
     int comp = WHITE, player = BLACK;
     bool plvspl = false;
     bool cudda = false;
+    int * new_board = new int [64];
     std::string input;
     std::cout << "Wybierz tryb gry: \n1 -> Player vs Player\n2 -> Player vs Computer\n3 -> Computer vs Computer\n";
     std::cin >> input;
@@ -678,11 +681,12 @@ void checkers::play(checkers &ch){
                 std::swap(i, i2);
 	    }
 	} else {
-        int * new_board;
+        for (int i = 0; i < 64; i++)
+            new_board[i] = ch.tab[i];
         if (cudda)
-            new_board = computer_turn(ch.n, ch.row_with_pawn, ch.tab, comp, 3);
+            new_board = computer_turn(ch.n, ch.row_with_pawn, new_board, comp, 3);
         else
-            new_board = computer_turn2(ch.n, ch.row_with_pawn, ch.tab, comp, 3);
+            new_board = computer_turn2(ch.n, ch.row_with_pawn, new_board, comp, 3);
 		for (int k = 0; k < ch.n*ch.n; k++)
 		    ch.tab[k] = new_board[k];
 		std::swap(i, i2);
@@ -691,6 +695,7 @@ void checkers::play(checkers &ch){
             break;
     }
     std::cout << "\n" << ch << "\nPlayer " << ch.check_who_won() << " won!\n";
+    delete [] new_board;
 }
 
 std::string symobol(int i){
@@ -914,6 +919,7 @@ checkers_point * again(checkers_point * ch, next_kill * first, next_kill * last,
         last = last->next;
         last->next = create_next_move(x1, y1, ch->board, x1+pm, y1-2);
         last = last->next;
+        std::cout << "AGAIN";
     }
     return ch;
 }
@@ -925,16 +931,19 @@ checkers_point * create_node(checkers_point * ch, int x, int y, int x1, int y1, 
     if (checkers::is_move_correct(x, y, checkers::pawn_owner(x, y, tab), x1, y1, false, tab, false)){
         checkers_point * chld;
         if (!nxt){
+            std::cout << "child ";
             ch->children = new checkers_point;
             ch->children->parent = ch;
             ch->children->prev = NULL;
             chld = ch->children;
         } else {
+            std::cout << "next ";
             ch->next = new checkers_point;
             ch->next->parent = ch->parent;
             ch->next->prev = ch;
             chld = ch->next;
         }
+        std::cout << "correct  ";
         chld->min_max = !chld->parent->min_max;
         chld->how_much_children = 0;
         chld->next = chld->children = NULL;
@@ -942,10 +951,13 @@ checkers_point * create_node(checkers_point * ch, int x, int y, int x1, int y1, 
         chld->parent->how_much_children++;
         chld->board[x1*8+y1] = chld->board[x*8+y];
         chld->board[x*8+y] = EMPTY;
-        if (kill && queen == false)
+        if (kill && queen == false){
+            std::cout << "HAHAKIL";
             chld->board[(x+x1)/2*8+(y+y1)/2] = EMPTY;
+        }
         ch = chld;
         nxt = true;
+        std::cout << x << " " << y << " - > " << x1 << " " << y1 << "\n";
         if (kill && !queen && !(checkers::create_queen(x1, y1, (ch->board)))){
             int pm;
             if (ch->board[x1*8+y1] == WHITE){
@@ -969,35 +981,39 @@ checkers_point * create_node(checkers_point * ch, int x, int y, int x1, int y1, 
     return ch;
 }
 
-void create_tree_linear(checkers_point *x, int how_deep, int now) {
+void create_tree_linear(checkers_point * x, int how_deep, int now) {
+    int * tab = x->board;
+    for (int i = 0 ; i < 64; i++)
+        std::cout << tab[i];
+    std::cout << "\n";
     if (how_deep == now)
         return;
     bool nxt = false;
     for (int i = 0; i < 64; ++i){
-        switch (x->board[i]) {
+        switch (tab[i]) {
             case WHITE:
-                if (now % 2 == 1){
-                    x = create_node(x, i/8, i%8, i/8-1, i%8-1, nxt, false, false);
-                    x = create_node(x, i/8, i%8, i/8-1, i%8+1, nxt, false, false);
-                    x = create_node(x, i/8, i%8, i/8-2, i%8-2, nxt, false, true);
-                    x = create_node(x, i/8, i%8, i/8-2, i%8+2, nxt, false, true);
+                if (now % 2 == 0){
+                    x = create_node(x, i/8, i%8, ((i/8)-1), ((i%8)-1), nxt, false, false);
+                    x = create_node(x, i/8, i%8, (i/8)-1, (i%8)+1, nxt, false, false);
+                    x = create_node(x, i/8, i%8, (i/8)-2, (i%8)-2, nxt, false, true);
+                    x = create_node(x, i/8, i%8, (i/8)-2, (i%8)+2, nxt, false, true);
                 }
                 break;
             case BLACK:
-                if (now % 2 == 0){
-                    x = create_node(x, i/8, i%8, i/8+1, i%8-1, nxt, false, false);
-                    x = create_node(x, i/8, i%8, i/8+1, i%8+1, nxt, false, false);
-                    x = create_node(x, i/8, i%8, i/8+2, i%8-2, nxt, false, true);
-                    x = create_node(x, i/8, i%8, i/8+2, i%8+2, nxt, false, true);
+                if (now % 2 == 1){
+                    x = create_node(x, i/8, i%8, i/8+1, (i%8)-1, nxt, false, false);
+                    x = create_node(x, i/8, i%8, i/8+1, (i%8)+1, nxt, false, false);
+                    x = create_node(x, i/8, i%8, i/8+2, (i%8)-2, nxt, false, true);
+                    x = create_node(x, i/8, i%8, i/8+2, (i%8)+2, nxt, false, true);
                 }
                 break;
             case QUEENW:
-                if (now % 2 == 1){
+                if (now % 2 == 0){
                     
                 }
                 break;
             case QUEENB:
-                if (now % 2 == 0){
+                if (now % 2 == 1){
                     
                 }
                 break;
@@ -1005,6 +1021,8 @@ void create_tree_linear(checkers_point *x, int how_deep, int now) {
                 break;
         }
     }
+    std::cout << "how much children " << x->parent->how_much_children << "\n";
+    x = x->parent;
     x = x->children;
     while (x != NULL){
         create_tree_linear(x, how_deep, now+1);
@@ -1013,20 +1031,24 @@ void create_tree_linear(checkers_point *x, int how_deep, int now) {
 }
 
 void set_root_linear(checkers_point *x,int * tab){
-	for(int i=0;i<64;i++) {
+	for(int i = 0; i < 64; i++) {
 		x->board[i]=tab[i];
 	}
+    x->how_much_children = 0;
 	x->min_max=true;
 	x->player=WHITE;
 }
 
-void delete_tree_linear(checkers_point *x){
-	checkers_point * child = x->children;
-	while(child!=NULL) {
-		delete_tree_linear(child);
-		child = child->next;
-	}
-	delete x;
+void delete_tree_linear(checkers_point * x){
+    if (x == NULL)
+        return;
+    std::cout << x->how_much_children << " ";
+    checkers_point * child = x->children;
+//	while (child != NULL) {
+//		delete_tree_linear(child);
+//		child = child->next;
+//	}
+//	delete x;
 }
 
 int alpha_beta_linear(checkers_point * x){
@@ -1057,11 +1079,17 @@ int alpha_beta_linear(checkers_point * x){
 void get_best(checkers_point *x, int *tab) {
 	int best_val=x->value;
 	checkers_point * child = x->children;
+    std::cout << x->value << " ";
 	while(child!=NULL) {
+        std::cout << child->value << " ";
 		if(child->value==x->value)
 			break;
 		child=child->next;
 	}
+    if (child == NULL){
+        std::cout << "No result???";
+        return;
+    }
 	for(int i=0;i<64;i++) {
 		tab[i]=child->board[i];
 	}
@@ -1070,10 +1098,10 @@ void get_best(checkers_point *x, int *tab) {
 int * computer_turn2(int siize, int row_with_pawn, int * tab_with_board, int player, int hd){
 	checkers_point * x = new checkers_point;
 	set_root_linear(x,tab_with_board);
-	create_tree_linear(x, hd, 1);
+	create_tree_linear(x, hd+1, 0);
 	alpha_beta_linear(x);
-	get_best(x,tab_with_board);
-	delete_tree_linear(x);
+    get_best(x,tab_with_board);
+    delete_tree_linear(x);
 	return tab_with_board;
 }
 
