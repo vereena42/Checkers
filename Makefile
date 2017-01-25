@@ -15,18 +15,18 @@ LIB_CUDA := -L/usr/lib/nvidia-current -lcuda
 
 
 # Options
-NVCCOPTIONS = -arch sm_20 -ptx
+NVCCOPTIONS = -arch sm_20 -ptx -std=c++11
 
 # Common flags
-COMMONFLAGS += $(INCLUDES)
-NVCCFLAGS += $(COMMONFLAGS) $(NVCCOPTIONS)
-CXXFLAGS += $(COMMONFLAGS)
+COMMONFLAGS += $(INCLUDES) -g
+NVCCFLAGS += $(COMMONFLAGS) $(NVCCOPTIONS) -G
+CXXFLAGS += $(COMMONFLAGS) -std=c++11
 CFLAGS += $(COMMONFLAGS)
 
 
 
 CUDA_OBJS = checkers.ptx
-OBJS = checkers.cpp.o main.cpp.o
+OBJS = checkers.cpp.o main.cpp.o objective_cuda.cpp.o
 TARGET = solution.x
 LINKLINE = $(LINK) -o $(TARGET) $(OBJS) $(LIB_CUDA)
 
@@ -38,7 +38,7 @@ LINKLINE = $(LINK) -o $(TARGET) $(OBJS) $(LIB_CUDA)
 	$(NVCC) $(NVCCFLAGS) $< -o $@
 
 %.cpp.o: %.cpp
-	$(CXX) $(CXXFLAGS) -std=c++11 -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 $(TARGET): prepare $(OBJS) $(CUDA_OBJS)
 	$(LINKLINE)
