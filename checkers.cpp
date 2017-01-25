@@ -7,11 +7,46 @@
 
 #include "checkers.hpp"
 #include "objective_cuda.h"
-
+#include <set>
 #define STR(k) XSTR(k)
 #define XSTR(k) #k
 
 #define cu_auto_assert(k) CuError::cu_assert(k, __FILE__ ":" STR(__LINE__))
+
+std::set<int> cycle;
+int zobrist_table[64][4];
+
+int zobrist_int(int * tab){
+    int res = 0;
+    for (int i = 0; i < 64; i++){
+	switch(tab[i]){
+	case BLACK:
+		res = res ^ zobrist_table[i][0];
+		break;
+	case WHITE:
+		res = res ^ zobrist_table[i][1];
+		break;
+	case QUEENB:
+		res = res ^ zobrist_table[i][2];
+		break;
+	case QUEENW:
+		res = res ^ zobrist_table[i][3];
+		break;
+	default:
+		break;
+	}
+    }
+    //std::cout << res << "\n";
+    return res;
+}
+
+void init_zobrist(){
+	for (int i = 0 ; i < 64; i++){
+		for (int j = 0; j < 4; j++)
+			zobrist_table[i][j] = rand();
+	}
+}
+
 
 checkers::checkers(){
     this->n = default_n;
@@ -213,6 +248,10 @@ bool checkers::create_queen(int x, int y, int * t){
 }
 
 bool checkers::is_end_of_game(){
+    int res = zobrist_int(tab);
+    if (cycle.find(res) != cycle.end())
+	return true;
+    cycle.insert(res);
     return is_there_winner() ||
             is_no_pawns() ||
             is_game_blocked();
@@ -308,6 +347,9 @@ std::string win_symbol(int win){
 }
 
 std::string checkers::check_who_won(){
+    int res = zobrist_int(tab);
+    if (cycle.find(res) != cycle.end())
+	return "REMIS";
     if (is_no_pawns())
         return win_symbol(who_got_more_queens());
     if (is_game_blocked())
@@ -644,10 +686,14 @@ void checkers::play_computer_vs_computer(checkers &ch){
     }
     std::cout << "Zagłębienie dla gracza " << outW << " " << iwhite << "\n";
     std::cout << "Zagłębienie dla gracza " << outB << " " << iblack << "\n";
-    std::cout << "\n" << ch << "\nPlayer " << ch.check_who_won() << "  won!\n";
+    std::string end = ch.check_who_won();
+    if (end == "REMIS")
+       std::cout << "No i mamy remis, każdy gracz gra optymalnie i nie pozwala sie zbić\n";
+    else std::cout << "\n" << ch << "\nPlayer " << ch.check_who_won() << "  won!\n";
 }
 
 void checkers::play(checkers &ch){
+    init_zobrist();
     int comp = WHITE, player = BLACK;
     bool plvspl = false;
     bool cudda = false;
@@ -661,9 +707,9 @@ void checkers::play(checkers &ch){
     } else if (input == "1"){
         plvspl = true;
     } else {
-        std::cout << "Wybierz 1 jeśli ruch gracza komputerowego ma być liczony na cudzie, 2 jeśli nie.\n";
-        std::cin >> input;
-        if (input == "1"){
+        //std::cout << "Wybierz 1 jeśli ruch gracza komputerowego ma być liczony na cudzie, 2 jeśli nie.\n";
+        //std::cin >> input;
+        if (true || input == "1"){
             cudda = true;
             std::cout << "Wybierz pionki, b jeśli biały, c jeśli czarny\n";
             std::cin >> input;
@@ -814,7 +860,7 @@ void cuda_start(){
     cu_auto_assert(cuModuleGetFunction(&print_tree, cuModule, "print_tree"));
     cu_auto_assert(cuModuleGetFunction(&set_root, cuModule, "set_root"));
     cu_auto_assert(cuModuleGetFunction(&copy_best_result, cuModule, "copy_best_result"));
-    for (int i = 0; i < how_deep; i++){
+    for (int i = 0; i < how_deep+1; i++){
         cuda_n *= max_children;
     }
     blocks_per_grid = (cuda_n+1023)/1024;

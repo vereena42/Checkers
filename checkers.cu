@@ -206,7 +206,7 @@ bool is_move_correct(int * tab, int x, int y, int who, int x1, int y1){
         return false;
     }
     if ((tab[x*n+y] == QUEENW || tab[x*n+y] == QUEENB) && (!queen_way(tab, x, y, x1, y1))){
-        printf("queen problem");
+//        printf("queen problem");
 	return false;
     }
     if (!is_queen(tab, x, y) && std::abs((x-x1)) > 1 && !correct_kill(tab, x, y, (x1+x)/2, (y1+y)/2)){
@@ -351,9 +351,9 @@ __device__
 					delete temp;
 				}
 			}
-		
+		        
 			if (queen && has_next_move(x1, y1, x, y, tab, true)){
-				next_kill * first, * last, * temp;
+				/*next_kill * first, * last, * temp;
                                 first = create_next_move(x1, y1, ch->board, x1+1, y1+1);
 				first->next = last = create_next_move(x1, y1, ch->board, x1-1, y1+1);
                                 last->next = create_next_move(x1, y1, ch->board, x1+1, y1-1);
@@ -373,7 +373,7 @@ __device__
                                         temp = first;
                                         first = first->next;
                                         delete temp;
-                                }
+                                }*/
 			}
 
 		}
