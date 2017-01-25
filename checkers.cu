@@ -469,8 +469,6 @@ __device__
 		ch2 = dismember_child(ch2, i/8, i % 8, how_deep, nxt, player);
 	    }
 	}
-	if (nxt == false)
-		printf("????");
     }
 
 __global__

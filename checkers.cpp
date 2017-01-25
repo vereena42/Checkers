@@ -674,10 +674,10 @@ void checkers::play_computer_vs_computer(checkers &ch){
     int hd1, hd2;
     std::cout << "Wprowadź dwie liczby oznaczające zagłębienie jednego i drugiego gracza:\n";
     std::cin >> hd1 >> hd2;
-//    while (hd1 < 1 || hd2 < 1 || hd1 > 2 || hd2 > 2){
-//	std::cout << "Muszą byc z zakresu 1-2\n";
-//	std::cin >> hd1 >> hd2;
- //   }
+    while (hd1 < 1 || hd2 < 1 || hd1 > 2 || hd2 > 2){
+	std::cout << "Muszą byc z zakresu 1-2\n";
+	std::cin >> hd1 >> hd2;
+    }
  //   bool wait = false;
     int iwhite = hd1, iblack = hd2;
     int i = WHITE, i2 = BLACK;
